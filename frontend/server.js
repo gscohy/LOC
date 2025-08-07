@@ -17,14 +17,21 @@ app.use((req, res, next) => {
 
 // Vérifier que le dossier dist existe
 const distPath = join(__dirname, 'dist');
+console.log('🔍 Checking dist path:', distPath);
+console.log('🔍 Files in current directory:', fs.readdirSync(__dirname));
+
 if (!existsSync(distPath)) {
   console.error('❌ Dist folder not found at:', distPath);
+  console.error('📁 Available directories:', fs.readdirSync(__dirname));
   process.exit(1);
 }
 
 const indexPath = join(distPath, 'index.html');
+console.log('🔍 Checking index.html at:', indexPath);
+
 if (!existsSync(indexPath)) {
   console.error('❌ index.html not found at:', indexPath);
+  console.error('📁 Files in dist:', fs.readdirSync(distPath));
   process.exit(1);
 }
 
@@ -38,6 +45,12 @@ app.use(express.static(distPath, {
 // API health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Handle static assets properly (not SPA routes)
+app.get('/assets/*', (req, res, next) => {
+  // Let express.static handle assets
+  next();
 });
 
 // Gérer toutes les autres routes pour les Single Page Applications
