@@ -669,6 +669,7 @@ router.delete('/:id', asyncHandler(async (req: AuthenticatedRequest, res) => {
 // @access  Private
 router.get('/stats/summary', asyncHandler(async (req: AuthenticatedRequest, res) => {
   const { bienId, annee } = req.query;
+  console.log('📊 Stats Summary - Params:', { bienId, annee });
 
   const where: any = {};
   if (bienId) {
@@ -681,6 +682,7 @@ router.get('/stats/summary', asyncHandler(async (req: AuthenticatedRequest, res)
       lt: new Date(year + 1, 0, 1),
     };
   }
+  console.log('📊 Stats Summary - Where clause:', where);
 
   const [
     totalCharges,
@@ -750,6 +752,14 @@ router.get('/stats/summary', asyncHandler(async (req: AuthenticatedRequest, res)
       }
     })() : Promise.resolve([])
   ]);
+
+  console.log('📊 Stats Summary - Results:', {
+    totalCharges: totalCharges?._sum?.montant,
+    chargesPayees: chargesPayees?._sum?.montant,
+    chargesNonPayees: chargesNonPayees?._sum?.montant,
+    chargesParCategorie: chargesParCategorie?.length,
+    chargesParMois: chargesParMois?.length
+  });
 
   res.json({
     success: true,
