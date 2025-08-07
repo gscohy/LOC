@@ -762,27 +762,36 @@ router.get('/stats/summary', asyncHandler(async (req: AuthenticatedRequest, res)
     chargesParMois: chargesParMois?.length
   });
 
+    // Fonction pour convertir BigInt en nombre
+    const convertBigInt = (value: any) => {
+      return typeof value === 'bigint' ? Number(value) : value;
+    };
+
     res.json({
       success: true,
       data: {
         total: {
-          montant: totalCharges?._sum?.montant || 0,
-          nombre: totalCharges?._count || 0,
+          montant: convertBigInt(totalCharges?._sum?.montant) || 0,
+          nombre: convertBigInt(totalCharges?._count) || 0,
         },
         payees: {
-          montant: chargesPayees?._sum?.montant || 0,
-          nombre: chargesPayees?._count || 0,
+          montant: convertBigInt(chargesPayees?._sum?.montant) || 0,
+          nombre: convertBigInt(chargesPayees?._count) || 0,
         },
         nonPayees: {
-          montant: chargesNonPayees?._sum?.montant || 0,
-          nombre: chargesNonPayees?._count || 0,
+          montant: convertBigInt(chargesNonPayees?._sum?.montant) || 0,
+          nombre: convertBigInt(chargesNonPayees?._count) || 0,
         },
         parCategorie: chargesParCategorie?.map(cat => ({
           categorie: cat.categorie,
-          montant: cat._sum?.montant || 0,
-          nombre: cat._count || 0,
+          montant: convertBigInt(cat._sum?.montant) || 0,
+          nombre: convertBigInt(cat._count) || 0,
         })) || [],
-        parMois: chargesParMois || [],
+        parMois: chargesParMois?.map(row => ({
+          mois: row.mois,
+          total: convertBigInt(row.total) || 0,
+          nombre: convertBigInt(row.nombre) || 0,
+        })) || [],
       },
     });
   } catch (error) {
