@@ -42,19 +42,27 @@ const ChargesSynthesisTable: React.FC<ChargesSynthesisTableProps> = ({
   // Calculer les données de synthèse
   const synthesisData = useMemo(() => {
     const data: SynthesisData = {};
+    
+    if (!charges || !Array.isArray(charges)) {
+      return data;
+    }
+
     const yearCharges = charges.filter(charge => 
-      new Date(charge.date).getFullYear() === selectedYear
+      charge && charge.date && new Date(charge.date).getFullYear() === selectedYear
     );
 
     yearCharges.forEach(charge => {
+      if (!charge || !charge.bienId || !charge.date || typeof charge.montant !== 'number') {
+        return; // Skip invalid charges
+      }
       const bienId = charge.bienId;
       const month = new Date(charge.date).getMonth() + 1; // 1-12
 
       if (!data[bienId]) {
         data[bienId] = {
           bien: {
-            adresse: charge.bien.adresse,
-            ville: charge.bien.ville,
+            adresse: charge.bien?.adresse || 'Adresse non disponible',
+            ville: charge.bien?.ville || 'Ville non disponible',
           },
           months: {},
           total: 0
@@ -77,8 +85,11 @@ const ChargesSynthesisTable: React.FC<ChargesSynthesisTableProps> = ({
     const totals: { [month: number]: number } = {};
     
     Object.values(synthesisData).forEach(bienData => {
+      if (!bienData || !bienData.months) return;
+      
       Object.entries(bienData.months).forEach(([month, amount]) => {
         const monthNum = parseInt(month);
+        if (isNaN(monthNum) || typeof amount !== 'number') return;
         if (!totals[monthNum]) totals[monthNum] = 0;
         totals[monthNum] += amount;
       });
@@ -88,16 +99,26 @@ const ChargesSynthesisTable: React.FC<ChargesSynthesisTableProps> = ({
   }, [synthesisData]);
 
   const grandTotal = Object.values(synthesisData).reduce(
-    (sum, bienData) => sum + bienData.total, 0
+    (sum, bienData) => {
+      if (!bienData || typeof bienData.total !== 'number') return sum;
+      return sum + bienData.total;
+    }, 0
   );
 
   // Générer les options d'années (années avec des charges)
   const availableYears = useMemo(() => {
+    if (!charges || !Array.isArray(charges)) return [selectedYear];
+    
     const years = new Set(
-      charges.map(charge => new Date(charge.date).getFullYear())
+      charges
+        .filter(charge => charge && charge.date)
+        .map(charge => new Date(charge.date).getFullYear())
+        .filter(year => !isNaN(year))
     );
+    
+    if (years.size === 0) years.add(selectedYear);
     return Array.from(years).sort((a, b) => b - a); // Plus récent en premier
-  }, [charges]);
+  }, [charges, selectedYear]);
 
   const yearOptions = availableYears.map(year => ({
     value: year.toString(),
