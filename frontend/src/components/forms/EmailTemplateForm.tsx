@@ -10,6 +10,7 @@ import Select from '@/components/ui/Select';
 import Textarea from '@/components/ui/Textarea';
 import Checkbox from '@/components/ui/Checkbox';
 import { EmailTemplate } from '@/types';
+import { parseTemplateVariables } from '@/utils/emailUtils';
 
 const emailTemplateSchema = z.object({
   nom: z.string().min(1, 'Le nom est requis'),
@@ -52,7 +53,7 @@ const EmailTemplateForm: React.FC<EmailTemplateFormProps> = ({
       sujet: initialData.sujet,
       contenu: initialData.contenu,
       type: initialData.type,
-      variables: initialData.variables || [],
+      variables: parseTemplateVariables(initialData.variables),
       actif: initialData.actif,
     } : {
       nom: '',
