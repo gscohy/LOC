@@ -724,23 +724,23 @@ router.get('/stats/summary', asyncHandler(async (req: AuthenticatedRequest, res)
         if (bienId) {
           return await prisma.$queryRaw`
             SELECT 
-              strftime('%m', date) as mois,
+              EXTRACT(MONTH FROM date)::text as mois,
               SUM(montant) as total,
               COUNT(*) as nombre
-            FROM charges 
-            WHERE bienId = ${bienId} AND strftime('%Y', date) = ${annee.toString()}
-            GROUP BY strftime('%m', date)
+            FROM "charges" 
+            WHERE "bienId" = ${bienId} AND EXTRACT(YEAR FROM date) = ${annee}
+            GROUP BY EXTRACT(MONTH FROM date)
             ORDER BY mois
           `;
         } else {
           return await prisma.$queryRaw`
             SELECT 
-              strftime('%m', date) as mois,
+              EXTRACT(MONTH FROM date)::text as mois,
               SUM(montant) as total,
               COUNT(*) as nombre
-            FROM charges 
-            WHERE strftime('%Y', date) = ${annee.toString()}
-            GROUP BY strftime('%m', date)
+            FROM "charges" 
+            WHERE EXTRACT(YEAR FROM date) = ${annee}
+            GROUP BY EXTRACT(MONTH FROM date)
             ORDER BY mois
           `;
         }
