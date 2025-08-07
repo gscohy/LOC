@@ -30,7 +30,7 @@ import QuittancesPage from '@/pages/quittances/QuittancesPage';
 import ChargesPage from '@/pages/charges/ChargesPage';
 import FiscalitePage from '@/pages/fiscalite/FiscalitePage';
 import DiagnosticPage from '@/pages/DiagnosticPage';
-import EmailConfigsPage from '@/pages/emails/EmailConfigsPage';
+import EmailsPage from '@/pages/emails/EmailsPage';
 
 // Loading component
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
@@ -301,7 +301,7 @@ function App() {
           element={
             <ProtectedRoute>
               <DashboardLayout>
-                <EmailConfigsPage />
+                <EmailsPage />
               </DashboardLayout>
             </ProtectedRoute>
           }

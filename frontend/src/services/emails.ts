@@ -85,6 +85,11 @@ export const emailsService = {
     await api.delete(`/emails/templates/${id}`);
   },
 
+  async previewTemplate(id: string, variables?: Record<string, any>): Promise<{sujet: string, contenu: string, variables: Record<string, any>}> {
+    const { data } = await api.post<ApiResponse<{sujet: string, contenu: string, variables: Record<string, any>}>>(`/emails/templates/${id}/preview`, { variables });
+    return data.data;
+  },
+
   // Utilitaires
   getProviderDefaults(provider: string) {
     const defaults: Record<string, {serveurSMTP: string, portSMTP: number, securite: 'TLS' | 'SSL' | 'NONE'}> = {

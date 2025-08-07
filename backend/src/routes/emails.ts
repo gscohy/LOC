@@ -428,6 +428,27 @@ router.get('/templates', asyncHandler(async (req: AuthenticatedRequest, res) => 
   });
 }));
 
+// @route   GET /api/emails/templates/:id
+// @desc    Get single email template
+// @access  Private
+router.get('/templates/:id', asyncHandler(async (req: AuthenticatedRequest, res) => {
+  const template = await prisma.emailTemplate.findUnique({
+    where: { id: req.params.id },
+  });
+
+  if (!template) {
+    throw createError('Template email non trouvé', 404);
+  }
+
+  res.json({
+    success: true,
+    data: {
+      ...template,
+      variables: JSON.parse(template.variables as string || '[]'),
+    },
+  });
+}));
+
 // @route   POST /api/emails/templates
 // @desc    Create email template
 // @access  Private
@@ -448,6 +469,137 @@ router.post('/templates', asyncHandler(async (req: AuthenticatedRequest, res) =>
       variables: JSON.parse(template.variables as string || '[]'),
     },
     message: 'Template email créé avec succès',
+  });
+}));
+
+// @route   PUT /api/emails/templates/:id
+// @desc    Update email template
+// @access  Private
+router.put('/templates/:id', asyncHandler(async (req: AuthenticatedRequest, res) => {
+  const validatedData = emailTemplateSchema.partial().parse(req.body);
+
+  const existing = await prisma.emailTemplate.findUnique({
+    where: { id: req.params.id },
+  });
+
+  if (!existing) {
+    throw createError('Template email non trouvé', 404);
+  }
+
+  const template = await prisma.emailTemplate.update({
+    where: { id: req.params.id },
+    data: {
+      ...validatedData,
+      variables: validatedData.variables ? JSON.stringify(validatedData.variables) : undefined,
+    },
+  });
+
+  res.json({
+    success: true,
+    data: {
+      ...template,
+      variables: JSON.parse(template.variables as string || '[]'),
+    },
+    message: 'Template email mis à jour avec succès',
+  });
+}));
+
+// @route   DELETE /api/emails/templates/:id
+// @desc    Delete email template
+// @access  Private
+router.delete('/templates/:id', asyncHandler(async (req: AuthenticatedRequest, res) => {
+  const existing = await prisma.emailTemplate.findUnique({
+    where: { id: req.params.id },
+  });
+
+  if (!existing) {
+    throw createError('Template email non trouvé', 404);
+  }
+
+  await prisma.emailTemplate.delete({
+    where: { id: req.params.id },
+  });
+
+  res.json({
+    success: true,
+    message: 'Template email supprimé avec succès',
+  });
+}));
+
+// @route   POST /api/emails/templates/:id/preview
+// @desc    Preview email template with sample data
+// @access  Private
+router.post('/templates/:id/preview', asyncHandler(async (req: AuthenticatedRequest, res) => {
+  const template = await prisma.emailTemplate.findUnique({
+    where: { id: req.params.id },
+  });
+
+  if (!template) {
+    throw createError('Template email non trouvé', 404);
+  }
+
+  const { variables: dataVariables } = req.body;
+
+  // Variables d'exemple par défaut selon le type
+  const defaultVariables: { [key: string]: any } = {
+    RAPPEL_LOYER: {
+      locataire_nom: 'Dupont',
+      locataire_prenom: 'Jean',
+      bien_adresse: '123 rue des Exemples',
+      bien_ville: 'Paris',
+      loyer_montant: '1200',
+      periode: 'Janvier 2025',
+      montant_du: '1200',
+      nb_jours_retard: '15'
+    },
+    QUITTANCE: {
+      locataire_nom: 'Martin',
+      locataire_prenom: 'Marie',
+      bien_adresse: '456 avenue de la République',
+      bien_ville: 'Lyon',
+      loyer_montant: '950',
+      periode: 'Janvier 2025',
+      date_paiement: '05/01/2025'
+    },
+    RELANCE: {
+      locataire_nom: 'Durand',
+      locataire_prenom: 'Pierre',
+      bien_adresse: '789 boulevard Saint-Michel',
+      bien_ville: 'Marseille',
+      montant_du: '1500',
+      nb_jours_retard: '30',
+      date_limite: '15/02/2025'
+    },
+    BIENVENUE: {
+      locataire_nom: 'Bernard',
+      locataire_prenom: 'Sophie',
+      bien_adresse: '321 place de la Mairie',
+      bien_ville: 'Toulouse',
+      date_entree: '01/02/2025',
+      proprietaire_nom: 'Société ABC'
+    }
+  };
+
+  // Fusionner avec les variables par défaut
+  const sampleData = { ...defaultVariables[template.type] || {}, ...dataVariables };
+
+  // Remplacer les variables dans le contenu et le sujet
+  let previewSubjet = template.sujet;
+  let previewContenu = template.contenu;
+
+  Object.entries(sampleData).forEach(([key, value]) => {
+    const placeholder = `{{${key}}}`;
+    previewSubjet = previewSubjet.replace(new RegExp(placeholder, 'g'), String(value));
+    previewContenu = previewContenu.replace(new RegExp(placeholder, 'g'), String(value));
+  });
+
+  res.json({
+    success: true,
+    data: {
+      sujet: previewSubjet,
+      contenu: previewContenu,
+      variables: sampleData,
+    },
   });
 }));
 
