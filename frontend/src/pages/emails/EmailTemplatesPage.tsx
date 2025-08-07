@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 
 import { emailsService } from '@/services/emails';
 import { EmailTemplate } from '@/types';
+import { api } from '@/lib/api';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Table from '@/components/ui/Table';
@@ -82,6 +83,23 @@ const EmailTemplatesPage: React.FC = () => {
       toast.error(error?.response?.data?.error?.message || 'Erreur lors de la suppression');
     },
   });
+
+  const initDefaultsMutation = useMutation(
+    () => api.post('/emails/templates/init-defaults'),
+    {
+      onSuccess: (response) => {
+        queryClient.invalidateQueries('email-templates');
+        if (response.data?.data?.templatesCreated > 0) {
+          toast.success(`${response.data.data.templatesCreated} templates par défaut créés !`);
+        } else {
+          toast.info('Des templates existent déjà dans la base de données');
+        }
+      },
+      onError: (error: any) => {
+        toast.error(error?.response?.data?.error?.message || 'Erreur lors de l\'initialisation');
+      },
+    }
+  );
 
   const handleCreate = (data: any) => {
     createMutation.mutate(data);
@@ -299,9 +317,23 @@ const EmailTemplatesPage: React.FC = () => {
           <h2 className="text-lg font-medium text-gray-900">
             Templates email
           </h2>
-          <p className="text-sm text-gray-600 mt-1">
-            {templatesData?.pagination.total || 0} template(s)
-          </p>
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-gray-600 mt-1">
+              {templatesData?.pagination.total || 0} template(s)
+            </p>
+            {(!templatesData?.data || templatesData.data.length === 0) && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => initDefaultsMutation.mutate()}
+                loading={initDefaultsMutation.isLoading}
+                className="text-blue-600 border-blue-600 hover:bg-blue-50"
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Créer les templates par défaut
+              </Button>
+            )}
+          </div>
         </div>
         
         {error ? (
