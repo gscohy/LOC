@@ -34,6 +34,9 @@ import documentsRoutes from './routes/documents.js';
 const app = express();
 const PORT = parseInt(process.env.PORT || '7000', 10);
 
+// Trust proxy for Render deployment
+app.set('trust proxy', true);
+
 // Initialize Prisma Client
 export const prisma = new PrismaClient({
   log: ['query', 'info', 'warn', 'error'],

@@ -5,10 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "npx prisma generate && tsc",
-    "build:production": "npx prisma generate && tsc && node dist/server.js",
+    "build": "npx prisma generate",
+    "build:production": "npx prisma generate && tsx src/server.ts",
     "build:render": "npx prisma generate",
-    "start": "node dist/server.js",
+    "start": "tsx src/server.ts",
     "start:dev": "tsx src/server.ts",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
