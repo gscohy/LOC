@@ -7,6 +7,7 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { EmailTemplate } from '@/types';
 import { emailsService } from '@/services/emails';
+import { parseTemplateVariables } from '@/utils/emailUtils';
 
 interface EmailPreviewModalProps {
   template: EmailTemplate;
@@ -23,8 +24,10 @@ const EmailPreviewModal: React.FC<EmailPreviewModalProps> = ({
 
   // Initialiser les variables personnalisées
   useEffect(() => {
+    const variables = parseTemplateVariables(template.variables);
+    
     const initialVariables: Record<string, string> = {};
-    template.variables.forEach(variable => {
+    variables.forEach((variable: string) => {
       initialVariables[variable] = '';
     });
     setCustomVariables(initialVariables);
@@ -127,41 +130,45 @@ const EmailPreviewModal: React.FC<EmailPreviewModalProps> = ({
             {template.nom}
           </h3>
           <p className="text-sm text-blue-700">
-            Type: {template.type} • {template.variables.length} variable(s) disponible(s)
+            Type: {template.type} • {parseTemplateVariables(template.variables).length} variable(s) disponible(s)
           </p>
         </div>
 
         {/* Variables personnalisables */}
-        {template.variables.length > 0 && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h4 className="font-medium text-gray-900">
-                Variables personnalisables
-              </h4>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleRefresh}
-                className="text-blue-600"
-              >
-                <RefreshCw className="h-4 w-4 mr-1" />
-                Actualiser
-              </Button>
+        {(() => {
+          const variables = parseTemplateVariables(template.variables);
+          
+          return variables.length > 0 && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h4 className="font-medium text-gray-900">
+                  Variables personnalisables
+                </h4>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleRefresh}
+                  className="text-blue-600"
+                >
+                  <RefreshCw className="h-4 w-4 mr-1" />
+                  Actualiser
+                </Button>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+                {variables.map((variable: string) => (
+                  <Input
+                    key={variable}
+                    label={variable.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                    placeholder={`Valeur pour ${variable}`}
+                    value={customVariables[variable] || ''}
+                    onChange={(e) => handleVariableChange(variable, e.target.value)}
+                  />
+                ))}
+              </div>
             </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
-              {template.variables.map((variable) => (
-                <Input
-                  key={variable}
-                  label={variable.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                  placeholder={`Valeur pour ${variable}`}
-                  value={customVariables[variable] || ''}
-                  onChange={(e) => handleVariableChange(variable, e.target.value)}
-                />
-              ))}
-            </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* Aperçu de l'email */}
         {renderEmailPreview()}

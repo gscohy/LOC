@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import { emailsService } from '@/services/emails';
 import { EmailTemplate } from '@/types';
 import { api } from '@/lib/api';
+import { parseTemplateVariables } from '@/utils/emailUtils';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Table from '@/components/ui/Table';
@@ -200,29 +201,33 @@ const EmailTemplatesPage: React.FC = () => {
     {
       key: 'variables',
       title: 'Variables',
-      render: (value: any, template: EmailTemplate) => (
-        <div className="space-y-1">
-          {template.variables.length > 0 ? (
-            <div className="flex flex-wrap gap-1">
-              {template.variables.slice(0, 3).map((variable, index) => (
-                <span
-                  key={index}
-                  className="inline-block px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded"
-                >
-                  {variable}
-                </span>
-              ))}
-              {template.variables.length > 3 && (
-                <span className="inline-block px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded">
-                  +{template.variables.length - 3}
-                </span>
-              )}
-            </div>
-          ) : (
-            <span className="text-sm text-gray-400">Aucune variable</span>
-          )}
-        </div>
-      ),
+      render: (value: any, template: EmailTemplate) => {
+        const variables = parseTemplateVariables(template.variables);
+        
+        return (
+          <div className="space-y-1">
+            {variables.length > 0 ? (
+              <div className="flex flex-wrap gap-1">
+                {variables.slice(0, 3).map((variable: string, index: number) => (
+                  <span
+                    key={index}
+                    className="inline-block px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded"
+                  >
+                    {variable}
+                  </span>
+                ))}
+                {variables.length > 3 && (
+                  <span className="inline-block px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded">
+                    +{variables.length - 3}
+                  </span>
+                )}
+              </div>
+            ) : (
+              <span className="text-sm text-gray-400">Aucune variable</span>
+            )}
+          </div>
+        );
+      },
     },
     {
       key: 'statut',
