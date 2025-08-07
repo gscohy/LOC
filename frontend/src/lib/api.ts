@@ -18,10 +18,19 @@ const getBaseURL = () => {
   return 'http://localhost:7000/api';
 };
 
+const baseURL = getBaseURL();
+console.log('🔧 API Configuration:', {
+  baseURL,
+  environment: import.meta.env.MODE,
+  VITE_API_URL: import.meta.env.VITE_API_URL,
+  NODE_ENV: import.meta.env.NODE_ENV,
+  PROD: import.meta.env.PROD
+});
+
 // Create axios instance
 export const api = axios.create({
-  baseURL: getBaseURL(),
-  timeout: 10000,
+  baseURL,
+  timeout: 30000, // Augmenté pour la production
   headers: {
     'Content-Type': 'application/json',
   },
@@ -47,6 +56,8 @@ if (savedToken) {
 // Request interceptor
 api.interceptors.request.use(
   (config) => {
+    console.log(`🚀 API Request: ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
+    
     // Add timestamp to prevent caching
     if (config.method === 'get') {
       config.params = {
@@ -57,6 +68,7 @@ api.interceptors.request.use(
     return config;
   },
   (error) => {
+    console.error('❌ Request interceptor error:', error);
     return Promise.reject(error);
   }
 );
@@ -64,13 +76,23 @@ api.interceptors.request.use(
 // Response interceptor
 api.interceptors.response.use(
   (response: AxiosResponse<ApiResponse<any>>) => {
+    console.log(`✅ API Response: ${response.status} ${response.config.method?.toUpperCase()} ${response.config.url}`);
     return response;
   },
   (error: AxiosError<ApiError>) => {
+    console.error('❌ API Error details:', {
+      status: error.response?.status,
+      message: error.message,
+      code: error.code,
+      config: error.config,
+      response: error.response?.data
+    });
+    
     const message = error.response?.data?.error?.message || error.message || 'Une erreur est survenue';
     
     // Handle specific error codes
     if (error.response?.status === 401) {
+      console.log('🔒 Unauthorized - redirecting to login');
       setAuthToken(null);
       window.location.href = '/login';
       return Promise.reject(error);
@@ -82,13 +104,16 @@ api.interceptors.response.use(
       // Ne pas afficher d'erreur pour les 404 - les gérer dans les composants
       console.warn('Ressource non trouvée:', error.config?.url);
     } else if (error.response && error.response.status >= 500) {
+      console.error('🔥 Server error:', message);
       toast.error('Erreur serveur: ' + message);
     } else if (error.code === 'NETWORK_ERROR' || !error.response) {
-      console.error('Network error details:', error);
+      console.error('🌐 Network error details:', error);
+      console.error('🌐 Full error object:', error);
+      console.error('🌐 Config:', error.config);
       toast.error('Erreur de connexion au serveur - Vérifiez votre connexion internet');
     } else {
       // Ne pas afficher les erreurs génériques, les laisser aux composants
-      console.warn('Erreur API:', message);
+      console.warn('⚠️ Erreur API:', message);
     }
 
     return Promise.reject(error);
