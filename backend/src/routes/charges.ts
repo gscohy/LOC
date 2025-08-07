@@ -669,7 +669,7 @@ router.delete('/:id', asyncHandler(async (req: AuthenticatedRequest, res) => {
 // @access  Private
 router.get('/stats/summary', asyncHandler(async (req: AuthenticatedRequest, res) => {
   const { bienId, annee } = req.query;
-  console.log('📊 Stats Summary - Params:', { bienId, annee });
+  console.log('📊 Stats Summary - Params (with BigInt fix):', { bienId, annee });
 
   try {
     const where: any = {};
