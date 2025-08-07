@@ -462,30 +462,11 @@ const ChargesPage: React.FC = () => {
       )}
 
       {/* Tableau de synthèse des charges par mois et localisation */}
-      <div className="card p-4 bg-blue-50 border border-blue-200">
-        <h3 className="text-lg font-semibold text-blue-900 mb-2">
-          🔍 Debug Tableau de Synthèse
-        </h3>
-        <p className="text-sm text-blue-800">
-          chargesData exists: {chargesData ? '✅' : '❌'}<br/>
-          charges count: {chargesData?.charges?.length || 0}<br/>
-          selectedYear: {synthesisYear}
-        </p>
-      </div>
-
-      {chargesData && (
-        <ChargesSynthesisTable
-          charges={chargesData.charges || []}
-          selectedYear={synthesisYear}
-          onYearChange={setSynthesisYear}
-        />
-      )}
-
-      {/* Graphiques des charges */}
       {chargesData && chargesData.charges.length > 0 && (
-        <ChargesCharts
+        <ChargesSynthesisTable
           charges={chargesData.charges}
           selectedYear={synthesisYear}
+          onYearChange={setSynthesisYear}
         />
       )}
 
