@@ -30,6 +30,8 @@ import Badge from '@/components/ui/Badge';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import ChargeForm from '@/components/forms/ChargeForm';
 import ChargesGroupedTable from '@/components/charges/ChargesGroupedTable';
+import ChargesSynthesisTable from '@/components/charges/ChargesSynthesisTable';
+import ChargesCharts from '@/components/charges/ChargesCharts';
 import { chargesService, Charge, ChargeCreate, ChargeUpdate, ChargesListParams } from '@/services/charges';
 import { biensService } from '@/services/biens';
 
@@ -46,6 +48,7 @@ const ChargesPage: React.FC = () => {
   const [ventilationModalOpen, setVentilationModalOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'table' | 'grouped'>('grouped');
   const [groupBy, setGroupBy] = useState<'year-month' | 'category' | 'bien'>('year-month');
+  const [synthesisYear, setSynthesisYear] = useState<number>(new Date().getFullYear());
 
   const queryClient = useQueryClient();
 
@@ -458,6 +461,34 @@ const ChargesPage: React.FC = () => {
         </div>
       )}
 
+      {/* Tableau de synthèse des charges par mois et localisation */}
+      <div className="card p-4 bg-blue-50 border border-blue-200">
+        <h3 className="text-lg font-semibold text-blue-900 mb-2">
+          🔍 Debug Tableau de Synthèse
+        </h3>
+        <p className="text-sm text-blue-800">
+          chargesData exists: {chargesData ? '✅' : '❌'}<br/>
+          charges count: {chargesData?.charges?.length || 0}<br/>
+          selectedYear: {synthesisYear}
+        </p>
+      </div>
+
+      {chargesData && (
+        <ChargesSynthesisTable
+          charges={chargesData.charges || []}
+          selectedYear={synthesisYear}
+          onYearChange={setSynthesisYear}
+        />
+      )}
+
+      {/* Graphiques des charges */}
+      {chargesData && chargesData.charges.length > 0 && (
+        <ChargesCharts
+          charges={chargesData.charges}
+          selectedYear={synthesisYear}
+        />
+      )}
+
       {/* Search and filters */}
       <div className="card">
         <div className="p-4 space-y-4">
@@ -562,7 +593,54 @@ const ChargesPage: React.FC = () => {
           </div>
         ) : chargesData && chargesData.charges.length > 0 ? (
           <>
-            {viewMode === 'grouped' ? (
+            {/* Afficher tableau simple si recherche active, sinon vue groupée ou tableau selon le mode */}
+            {searchTerm ? (
+              <div className="card">
+                <div className="p-4 border-b border-gray-200">
+                  <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                    <Search className="h-5 w-5 mr-2" />
+                    Résultats de recherche pour "{searchTerm}"
+                  </h3>
+                  <p className="text-sm text-gray-600 mt-1">
+                    {chargesData.charges.length} résultat{chargesData.charges.length > 1 ? 's' : ''} trouvé{chargesData.charges.length > 1 ? 's' : ''}
+                  </p>
+                </div>
+                <Table
+                  columns={columns}
+                  data={chargesData.charges}
+                  keyExtractor={(record) => record.id}
+                />
+                
+                {/* Pagination */}
+                {chargesData.pagination.pages > 1 && (
+                  <div className="px-6 py-4 border-t border-gray-200">
+                    <div className="flex items-center justify-between">
+                      <div className="text-sm text-gray-700">
+                        Page {chargesData.pagination.page} sur {chargesData.pagination.pages}
+                      </div>
+                      <div className="flex space-x-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handlePageChange(chargesData.pagination.page - 1)}
+                          disabled={chargesData.pagination.page === 1}
+                        >
+                          Précédent
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handlePageChange(chargesData.pagination.page + 1)}
+                          disabled={chargesData.pagination.page === chargesData.pagination.pages}
+                        >
+                          Suivant
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : viewMode === 'grouped' ? (
               <ChargesGroupedTable
                 charges={chargesData.charges}
                 onView={handleViewCharge}

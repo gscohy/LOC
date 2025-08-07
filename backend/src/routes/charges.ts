@@ -728,7 +728,7 @@ router.get('/stats/summary', asyncHandler(async (req: AuthenticatedRequest, res)
               SUM(montant) as total,
               COUNT(*) as nombre
             FROM "charges" 
-            WHERE "bienId" = ${bienId} AND EXTRACT(YEAR FROM date) = ${annee}
+            WHERE "bienId" = ${bienId} AND EXTRACT(YEAR FROM date) = ${parseInt(annee as string)}
             GROUP BY EXTRACT(MONTH FROM date)
             ORDER BY mois
           `;
@@ -739,7 +739,7 @@ router.get('/stats/summary', asyncHandler(async (req: AuthenticatedRequest, res)
               SUM(montant) as total,
               COUNT(*) as nombre
             FROM "charges" 
-            WHERE EXTRACT(YEAR FROM date) = ${annee}
+            WHERE EXTRACT(YEAR FROM date) = ${parseInt(annee as string)}
             GROUP BY EXTRACT(MONTH FROM date)
             ORDER BY mois
           `;
