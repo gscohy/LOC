@@ -63,6 +63,7 @@ export interface ChargesListParams {
   payee?: boolean;
   dateDebut?: string;
   dateFin?: string;
+  search?: string;
 }
 
 export interface ChargesListResponse {

@@ -77,7 +77,8 @@ router.get('/', asyncHandler(async (req: AuthenticatedRequest, res) => {
     payee,
     dateDebut,
     dateFin,
-    annee
+    annee,
+    search
   } = req.query;
   
   const pageNum = parseInt(page as string);
@@ -117,6 +118,23 @@ router.get('/', asyncHandler(async (req: AuthenticatedRequest, res) => {
       gte: new Date(year, 0, 1),
       lt: new Date(year + 1, 0, 1),
     };
+  }
+
+  // Ajouter la recherche textuelle
+  if (search) {
+    where.OR = [
+      { description: { contains: search as string, mode: 'insensitive' } },
+      { commentaires: { contains: search as string, mode: 'insensitive' } },
+      { 
+        bien: {
+          OR: [
+            { adresse: { contains: search as string, mode: 'insensitive' } },
+            { ville: { contains: search as string, mode: 'insensitive' } },
+            { codePostal: { contains: search as string, mode: 'insensitive' } },
+          ]
+        }
+      }
+    ];
   }
 
   const [charges, total] = await Promise.all([

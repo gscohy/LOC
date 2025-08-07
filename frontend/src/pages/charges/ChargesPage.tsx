@@ -29,6 +29,7 @@ import Modal from '@/components/ui/Modal';
 import Badge from '@/components/ui/Badge';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import ChargeForm from '@/components/forms/ChargeForm';
+import ChargesGroupedTable from '@/components/charges/ChargesGroupedTable';
 import { chargesService, Charge, ChargeCreate, ChargeUpdate, ChargesListParams } from '@/services/charges';
 import { biensService } from '@/services/biens';
 
@@ -36,13 +37,15 @@ const ChargesPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState<ChargesListParams>({
     page: 1,
-    limit: 20,
+    limit: 100, // Augmenté pour le tableau groupé
   });
   const [showFilters, setShowFilters] = useState(false);
   const [chargeModalOpen, setChargeModalOpen] = useState(false);
   const [selectedCharge, setSelectedCharge] = useState<Charge | null>(null);
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [ventilationModalOpen, setVentilationModalOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<'table' | 'grouped'>('grouped');
+  const [groupBy, setGroupBy] = useState<'year-month' | 'category' | 'bien'>('year-month');
 
   const queryClient = useQueryClient();
 
@@ -483,6 +486,35 @@ const ChargesPage: React.FC = () => {
             </Button>
           </div>
 
+          <div className="flex items-center space-x-4">
+            <Button
+              variant={viewMode === 'grouped' ? 'primary' : 'outline'}
+              onClick={() => setViewMode('grouped')}
+            >
+              <BarChart3 className="h-4 w-4 mr-2" />
+              Vue groupée
+            </Button>
+            <Button
+              variant={viewMode === 'table' ? 'primary' : 'outline'}
+              onClick={() => setViewMode('table')}
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              Vue tableau
+            </Button>
+            {viewMode === 'grouped' && (
+              <Select
+                label="Grouper par"
+                value={groupBy}
+                onChange={(e) => setGroupBy(e.target.value as any)}
+                options={[
+                  { value: 'year-month', label: 'Année / Mois' },
+                  { value: 'category', label: 'Catégorie' },
+                  { value: 'bien', label: 'Bien immobilier' },
+                ]}
+              />
+            )}
+          </div>
+
           {showFilters && (
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pt-4 border-t border-gray-200">
               <Select
@@ -518,8 +550,8 @@ const ChargesPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Table des charges */}
-      <div className="card">
+      {/* Table/Vue groupée des charges */}
+      <div className="space-y-4">
         {chargesLoading ? (
           <div className="flex items-center justify-center py-12">
             <LoadingSpinner size="lg" />
@@ -530,54 +562,71 @@ const ChargesPage: React.FC = () => {
           </div>
         ) : chargesData && chargesData.charges.length > 0 ? (
           <>
-            <Table
-              columns={columns}
-              data={chargesData.charges}
-              keyExtractor={(record) => record.id}
-            />
-            
-            {/* Pagination */}
-            {chargesData.pagination.pages > 1 && (
-              <div className="px-6 py-4 border-t border-gray-200">
-                <div className="flex items-center justify-between">
-                  <div className="text-sm text-gray-700">
-                    Page {chargesData.pagination.page} sur {chargesData.pagination.pages}
+            {viewMode === 'grouped' ? (
+              <ChargesGroupedTable
+                charges={chargesData.charges}
+                onView={handleViewCharge}
+                onEdit={handleEditCharge}
+                onDelete={handleDeleteCharge}
+                onTogglePayee={handleTogglePayee}
+                groupBy={groupBy}
+              />
+            ) : (
+              <div className="card">
+                <Table
+                  columns={columns}
+                  data={chargesData.charges}
+                  keyExtractor={(record) => record.id}
+                />
+                
+                {/* Pagination */}
+                {chargesData.pagination.pages > 1 && (
+                  <div className="px-6 py-4 border-t border-gray-200">
+                    <div className="flex items-center justify-between">
+                      <div className="text-sm text-gray-700">
+                        Page {chargesData.pagination.page} sur {chargesData.pagination.pages}
+                      </div>
+                      <div className="flex space-x-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handlePageChange(chargesData.pagination.page - 1)}
+                          disabled={chargesData.pagination.page === 1}
+                        >
+                          Précédent
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handlePageChange(chargesData.pagination.page + 1)}
+                          disabled={chargesData.pagination.page === chargesData.pagination.pages}
+                        >
+                          Suivant
+                        </Button>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handlePageChange(chargesData.pagination.page - 1)}
-                      disabled={chargesData.pagination.page === 1}
-                    >
-                      Précédent
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handlePageChange(chargesData.pagination.page + 1)}
-                      disabled={chargesData.pagination.page === chargesData.pagination.pages}
-                    >
-                      Suivant
-                    </Button>
-                  </div>
-                </div>
+                )}
               </div>
             )}
           </>
         ) : (
-          <div className="text-center py-12">
-            <Euro className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              Aucune charge trouvée
-            </h3>
-            <p className="text-gray-600 mb-4">
-              Commencez par créer votre première charge.
-            </p>
-            <Button onClick={handleCreateCharge}>
-              <Plus className="h-4 w-4 mr-2" />
-              Nouvelle charge
-            </Button>
+          <div className="card">
+            <div className="text-center py-12">
+              <Euro className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                Aucune charge trouvée
+              </h3>
+              <p className="text-gray-600 mb-4">
+                {searchTerm || Object.keys(filters).some(k => filters[k as keyof ChargesListParams] && k !== 'page' && k !== 'limit')
+                  ? 'Aucune charge ne correspond aux critères de recherche.' 
+                  : 'Commencez par créer votre première charge.'}
+              </p>
+              <Button onClick={handleCreateCharge}>
+                <Plus className="h-4 w-4 mr-2" />
+                Nouvelle charge
+              </Button>
+            </div>
           </div>
         )}
       </div>
