@@ -4,9 +4,14 @@ import toast from 'react-hot-toast';
 
 // Determine the base URL based on environment
 const getBaseURL = () => {
-  // Production: utiliser l'URL du backend Render
-  if (import.meta.env.PROD) {
-    return import.meta.env.VITE_API_URL || 'https://loc-backend.onrender.com/api';
+  // Priorité à la variable d'environnement VITE_API_URL
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  
+  // Production: utiliser l'URL du backend Render par défaut
+  if (import.meta.env.PROD || import.meta.env.NODE_ENV === 'production') {
+    return 'https://loc-backend.onrender.com/api';
   }
   
   // Development: localhost
@@ -80,7 +85,7 @@ api.interceptors.response.use(
       toast.error('Erreur serveur: ' + message);
     } else if (error.code === 'NETWORK_ERROR' || !error.response) {
       console.error('Network error details:', error);
-      toast.error('Erreur de connexion au serveur - Vérifiez que le backend est démarré sur http://localhost:7000');
+      toast.error('Erreur de connexion au serveur - Vérifiez votre connexion internet');
     } else {
       // Ne pas afficher les erreurs génériques, les laisser aux composants
       console.warn('Erreur API:', message);
