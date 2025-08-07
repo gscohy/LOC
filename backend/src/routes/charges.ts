@@ -671,18 +671,19 @@ router.get('/stats/summary', asyncHandler(async (req: AuthenticatedRequest, res)
   const { bienId, annee } = req.query;
   console.log('📊 Stats Summary - Params:', { bienId, annee });
 
-  const where: any = {};
-  if (bienId) {
-    where.bienId = bienId;
-  }
-  if (annee) {
-    const year = parseInt(annee as string);
-    where.date = {
-      gte: new Date(year, 0, 1),
-      lt: new Date(year + 1, 0, 1),
-    };
-  }
-  console.log('📊 Stats Summary - Where clause:', where);
+  try {
+    const where: any = {};
+    if (bienId) {
+      where.bienId = bienId;
+    }
+    if (annee) {
+      const year = parseInt(annee as string);
+      where.date = {
+        gte: new Date(year, 0, 1),
+        lt: new Date(year + 1, 0, 1),
+      };
+    }
+    console.log('📊 Stats Summary - Where clause:', where);
 
   const [
     totalCharges,
@@ -761,29 +762,38 @@ router.get('/stats/summary', asyncHandler(async (req: AuthenticatedRequest, res)
     chargesParMois: chargesParMois?.length
   });
 
-  res.json({
-    success: true,
-    data: {
-      total: {
-        montant: totalCharges._sum.montant || 0,
-        nombre: totalCharges._count || 0,
+    res.json({
+      success: true,
+      data: {
+        total: {
+          montant: totalCharges?._sum?.montant || 0,
+          nombre: totalCharges?._count || 0,
+        },
+        payees: {
+          montant: chargesPayees?._sum?.montant || 0,
+          nombre: chargesPayees?._count || 0,
+        },
+        nonPayees: {
+          montant: chargesNonPayees?._sum?.montant || 0,
+          nombre: chargesNonPayees?._count || 0,
+        },
+        parCategorie: chargesParCategorie?.map(cat => ({
+          categorie: cat.categorie,
+          montant: cat._sum?.montant || 0,
+          nombre: cat._count || 0,
+        })) || [],
+        parMois: chargesParMois || [],
       },
-      payees: {
-        montant: chargesPayees._sum.montant || 0,
-        nombre: chargesPayees._count || 0,
-      },
-      nonPayees: {
-        montant: chargesNonPayees._sum.montant || 0,
-        nombre: chargesNonPayees._count || 0,
-      },
-      parCategorie: chargesParCategorie.map(cat => ({
-        categorie: cat.categorie,
-        montant: cat._sum.montant || 0,
-        nombre: cat._count,
-      })),
-      parMois: chargesParMois,
-    },
-  });
+    });
+  } catch (error) {
+    console.error('❌ Erreur Stats Summary:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        message: 'Erreur lors du calcul des statistiques'
+      }
+    });
+  }
 }));
 
 // @route   POST /api/charges/:id/toggle-payee
