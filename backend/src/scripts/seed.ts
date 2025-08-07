@@ -167,6 +167,150 @@ async function main() {
 
   console.log('✅ Contrats created:', contrat1.id);
   
+  // Initialiser les templates d'emails par défaut
+  const existingTemplates = await prisma.emailTemplate.count();
+  
+  if (existingTemplates === 0) {
+    console.log('📧 Initializing default email templates...');
+    
+    const defaultTemplates = [
+      {
+        nom: 'Rappel de loyer impayé',
+        sujet: 'Rappel de paiement - Loyer {{periode}} - {{bien_adresse}}',
+        contenu: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
+            <div style="text-align: center; margin-bottom: 30px;">
+              <h1 style="color: #2c3e50; margin: 0;">RAPPEL DE PAIEMENT</h1>
+              <p style="color: #7f8c8d; font-size: 14px;">Gestion Locative</p>
+            </div>
+            <div style="background-color: #f8f9fa; padding: 20px; border-left: 4px solid #e74c3c; margin: 20px 0;">
+              <h3 style="color: #e74c3c; margin-top: 0;">Loyer en retard de paiement</h3>
+              <p>Nous n'avons pas reçu le paiement de votre loyer pour la période de <strong>{{periode}}</strong>.</p>
+            </div>
+            <div style="margin: 20px 0;">
+              <h4>Informations du bien :</h4>
+              <ul style="list-style: none; padding: 0;">
+                <li><strong>Adresse :</strong> {{bien_adresse}}, {{bien_ville}} {{bien_codePostal}}</li>
+                <li><strong>Locataire :</strong> {{locataire_prenom}} {{locataire_nom}}</li>
+                <li><strong>Montant dû :</strong> {{montant_du}} €</li>
+                <li><strong>Nombre de jours de retard :</strong> {{nb_jours_retard}} jours</li>
+              </ul>
+            </div>
+            <div style="background-color: #fff3cd; padding: 15px; border-radius: 5px; margin: 20px 0;">
+              <p style="margin: 0;"><strong>Merci de régulariser votre situation dans les plus brefs délais.</strong></p>
+            </div>
+          </div>
+        `,
+        type: 'RAPPEL_LOYER',
+        variables: JSON.stringify([
+          'locataire_nom', 'locataire_prenom', 'bien_adresse', 'bien_ville', 
+          'bien_codePostal', 'periode', 'montant_du', 'nb_jours_retard'
+        ]),
+        actif: true
+      },
+      {
+        nom: 'Quittance de loyer',
+        sujet: 'Quittance de loyer - {{periode}} - {{bien_adresse}}',
+        contenu: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
+            <div style="text-align: center; margin-bottom: 30px;">
+              <h1 style="color: #27ae60; margin: 0;">QUITTANCE DE LOYER</h1>
+              <p style="color: #7f8c8d; font-size: 14px;">Gestion Locative</p>
+            </div>
+            <div style="background-color: #d4edda; padding: 20px; border-left: 4px solid #27ae60; margin: 20px 0;">
+              <h3 style="color: #27ae60; margin-top: 0;">Paiement reçu avec succès</h3>
+              <p>Nous accusons réception de votre paiement pour la période de <strong>{{periode}}</strong>.</p>
+            </div>
+            <table style="width: 100%; border-collapse: collapse; margin: 10px 0;">
+              <tr>
+                <td style="padding: 10px; border: 1px solid #ddd;"><strong>Locataire</strong></td>
+                <td style="padding: 10px; border: 1px solid #ddd;">{{locataire_prenom}} {{locataire_nom}}</td>
+              </tr>
+              <tr>
+                <td style="padding: 10px; border: 1px solid #ddd;"><strong>Montant</strong></td>
+                <td style="padding: 10px; border: 1px solid #ddd;"><strong>{{loyer_montant}} €</strong></td>
+              </tr>
+            </table>
+          </div>
+        `,
+        type: 'QUITTANCE',
+        variables: JSON.stringify([
+          'locataire_nom', 'locataire_prenom', 'bien_adresse', 'bien_ville', 
+          'bien_codePostal', 'periode', 'loyer_montant', 'date_paiement'
+        ]),
+        actif: true
+      },
+      {
+        nom: 'Relance en cas de non-paiement',
+        sujet: 'RELANCE URGENTE - Loyer impayé depuis {{nb_jours_retard}} jours - {{bien_adresse}}',
+        contenu: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
+            <div style="text-align: center; margin-bottom: 30px;">
+              <h1 style="color: #dc3545; margin: 0;">RELANCE URGENTE</h1>
+            </div>
+            <div style="background-color: #f8d7da; padding: 20px; border-left: 4px solid #dc3545; margin: 20px 0;">
+              <h3 style="color: #dc3545; margin-top: 0;">⚠️ Situation préoccupante</h3>
+              <p>Malgré notre précédent rappel, nous n'avons toujours pas reçu le règlement.</p>
+              <p><strong>Retard actuel : {{nb_jours_retard}} jours</strong></p>
+            </div>
+            <div style="margin: 20px 0;">
+              <ul style="list-style: none; padding: 0;">
+                <li><strong>Locataire :</strong> {{locataire_prenom}} {{locataire_nom}}</li>
+                <li style="color: #dc3545;"><strong>Montant dû :</strong> {{montant_du}} €</li>
+                <li style="color: #dc3545;"><strong>Date limite :</strong> {{date_limite}}</li>
+              </ul>
+            </div>
+          </div>
+        `,
+        type: 'RELANCE',
+        variables: JSON.stringify([
+          'locataire_nom', 'locataire_prenom', 'bien_adresse', 'bien_ville', 
+          'bien_codePostal', 'montant_du', 'nb_jours_retard', 'date_limite'
+        ]),
+        actif: true
+      },
+      {
+        nom: 'Email de bienvenue nouveau locataire',
+        sujet: 'Bienvenue ! Informations importantes pour votre nouveau logement - {{bien_adresse}}',
+        contenu: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
+            <div style="text-align: center; margin-bottom: 30px;">
+              <h1 style="color: #17a2b8; margin: 0;">🏠 BIENVENUE !</h1>
+            </div>
+            <div style="background-color: #d1ecf1; padding: 20px; border-left: 4px solid #17a2b8; margin: 20px 0;">
+              <h3 style="color: #17a2b8; margin-top: 0;">Félicitations pour votre nouveau logement !</h3>
+              <p>Nous vous souhaitons la bienvenue dans votre nouveau logement.</p>
+            </div>
+            <div style="margin: 20px 0;">
+              <h4>🏡 Informations de votre logement :</h4>
+              <ul style="list-style: none; padding: 0;">
+                <li><strong>Locataire :</strong> {{locataire_prenom}} {{locataire_nom}}</li>
+                <li><strong>Adresse :</strong> {{bien_adresse}}, {{bien_ville}} {{bien_codePostal}}</li>
+                <li><strong>Date d'entrée :</strong> {{date_entree}}</li>
+              </ul>
+            </div>
+          </div>
+        `,
+        type: 'BIENVENUE',
+        variables: JSON.stringify([
+          'locataire_nom', 'locataire_prenom', 'bien_adresse', 'bien_ville', 
+          'bien_codePostal', 'date_entree', 'proprietaire_nom'
+        ]),
+        actif: true
+      }
+    ];
+
+    const createdTemplates = await prisma.$transaction(
+      defaultTemplates.map(template => 
+        prisma.emailTemplate.create({ data: template })
+      )
+    );
+
+    console.log(`✅ Email templates created: ${createdTemplates.length} templates`);
+  } else {
+    console.log(`📧 Email templates already exist: ${existingTemplates} found`);
+  }
+  
   console.log('🎉 Database seeded successfully!');
 }
 

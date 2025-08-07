@@ -40,7 +40,8 @@
       "Bash(del nul)",
       "Bash(git commit:*)",
       "Bash(git push:*)",
-      "Bash(git remote add:*)"
+      "Bash(git remote add:*)",
+      "Bash(del test-init-templates.js test-init-templates.mjs test-route-behavior.mjs test-api-call.mjs check-templates.mjs)"
     ],
     "deny": []
   }
