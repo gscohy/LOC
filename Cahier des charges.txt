@@ -1,0 +1,131 @@
+📘 Cahier des charges – Application Web de Gestion Locative
+________________________________________
+1. Présentation du projet
+•	Nom du projet : Application Web de Gestion Locative
+•	Objectif principal : Remplacer une base Access par une application web moderne, sécurisée, évolutive, et accessible à distance.
+•	Utilisateurs ciblés :
+o	Administrateur(s)
+o	Utilisateurs internes (gestionnaires de biens)
+o	Bailleurs (facultatif)
+o	Co-propriétaires ou associés en indivision
+________________________________________
+2. Modules fonctionnels
+1.	 📂 Gestion des biens Propriétaires (visualisation, ajout, modification, suppression)
+•	Nom, Prénom et Mail 
+2.	. 📂 Gestion des biens immobiliers (visualisation, ajout, modification, suppression)
+•	Adresse, type, surface, loyer, charges
+
+Propriétaire avec sa quote part (1 ou plusieurs propriétaires)
+•	Gestion des lots dans un même immeuble
+•	Téléversement de photos et documents techniques 
+•	Historique de location
+•	Dans visualisation :
+Suivie des loyers (En attente, Payé, Retard, Partiel,…)
+Suivie des locataires du bien
+Envois des quittances (Impression ou mail)
+________________________________________
+3.	 👤 Gestion des locataires (visualisation, ajout, modification, suppression)
+•	Civilité, coordonnées, email, téléphone
+•	Justificatifs (pièce d’identité, RIB, etc.)
+•	Historique des baux
+4.	 👤 Gestion des Garants (visualisation, ajout, modification, suppression)
+•	Civilité, coordonnées, email, téléphone
+•	Justificatifs (pièce d’identité, RIB, etc.)
+________________________________________
+5.	 📝 Contrats de location (baux) (visualisation, ajout, modification, suppression)
+•	Association bien + locataire (un ou plusieurs)
+•	Durée, dates de début et date de fin (vide si toujours occupant), dépôt de garantie, jour de paiement exigible 
+•	Frais de notaire si bail notaire 
+Frais d’huissier si Etat des lieux par huissier
+•	Montant du loyer 
+montant des charges (a la charge des locataires)
+•	Renouvellements ou résiliations
+•	Alerte fin de bail
+•	Archivage
+________________________________________
+6.	. 💰 Suivi des loyers 
+•	Génération automatique des loyers mensuels
+•	Enregistrement des paiements (date, montant, mode)
+•	Gestion des impayés / trop-perçus et des retards (avec relance automatique)
+•	Calcul de solde locatif
+•	Un loyer peut être payé en plusieurs fois a des dates différentes et a des mois différents du mois du loyer (ex pour le loyer de Janvier, le locataire va payer 150€ le 05/01/2025, la CAF va virer 500€ le 05/06/2025 et 30€ payé par les parents du locataire le 25/01/2025)
+•	La saisie du paiement se fait soit dans la fiche du bien, soit dans la fiche du locataire
+________________________________________
+7.	 🧾 Quittances de loyer
+•	Génération PDF des quittances
+•	Envoi manuel ou automatique par email se fait soit dans la fiche du bien, soit dans la fiche du locataire
+•	Historique et journalisation des envois
+Ajout de logo, signature ou cachet (paramétrable )
+2.8. 💸 Module Charges bailleur
+•	Charges ponctuelles(Travaux par exemple) ou récurrentes (mensuelle, annuelle…) comme crédit immo, Assurance,…
+•	Catégories :
+o	Travaux
+o	Assurances
+o	Crédit immobilier (avec échéancier automatique)
+o	Taxe foncière
+o	Frais de gestion
+o	Charges exceptionnelles
+•	Calcul du revenu net réel
+•	Répartition automatique sur la durée (ex : assurance annuelle sur 12 mois)
+•	Historique par bien
+________________________________________
+8.	 📊 Tableau de bord
+•	Synthèse loyers dus / encaissés
+•	Retards, vacance locative
+•	Baux expirant prochainement
+•	Revenus bruts / nets par mois / an et par bien
+•	Graphiques interactifs
+________________________________________
+9.	. 🔍 Recherche & filtres
+•	Recherche par bien, locataire, ville, statut
+•	Filtres : baux actifs, loyers impayés, vacance, charges élevées
+•	Affichage en liste ou tableau
+________________________________________
+________________________________________
+10.	 📥 Synthèse fiscale – Revenu foncier
+•	Calculs pour déclaration 2044 (avis d’imposition)
+•	Sélection d’une période
+•	Revenus bruts – Charges = Net foncier
+•	PDF synthétique exportable ou envoyable
+•	Rapport détaillé avec ou sans justificatifs joints
+________________________________________
+________________________________________
+11.	2.11. 🧮 Modules avancés stratégiques pour le bailleur
+2.11.1. 📈 Indexation automatique des loyers (IRL) 
+•	Application automatique de la revalorisation annuelle Facultatif(a la demande du bailleur)
+•	Courrier généré
+•	Historique des revalorisations
+2.11.2. 🏚 Suivi de la vacance locative
+•	Taux de vacance par bien
+•	Historique des périodes sans locataire
+•	Intégration dans la rentabilité
+2.11.3. 💰 Calcul de rentabilité
+•	Brute, nette, nette-nette
+•	En fonction des loyers, charges et fiscalité estimée
+•	Affichage par bien et global
+2.11.4. ⏰ Rappels automatiques
+•	Fin de bail, révision IRL, échéance crédit, assurance
+•	Notifications par email et affichage dans un calendrier
+2.11.5. 🗂 Gestion documentaire intelligente
+•	Téléversement de documents liés aux biens, contrats, paiements
+•	Classement automatique
+•	Recherche rapide
+•	Prévisualisation des documents
+2.11.6. 📉 Simulation de revente
+•	Estimation de plus-value
+•	Frais de notaire
+•	Revenu cumulé depuis achat
+•	Rapport PDF “scénario de sortie”
+2.11.7. 🧾 Multi-propriétaires / indivision / SCI
+•	Gestion des quote-parts
+•	Répartition automatique revenus/charges
+•	Rapports individuels
+•	Export comptable
+3. Aspects techniques
+3.1. Architecture recommandée
+•	Base de données : SQLite ou PostgreSQL
+•	Authentification avec rôles (admin, gestionnaire, lecteur)
+3.2. Hébergement
+•	Environnements : dev + production
+•	Sauvegardes automatiques
+

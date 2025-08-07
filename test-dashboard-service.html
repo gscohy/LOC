@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Dashboard Service</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; }
+        .result { margin: 15px 0; padding: 10px; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        button { padding: 10px 20px; margin: 10px 5px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 4px; }
+        pre { background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto; font-size: 12px; max-height: 300px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Test Service Dashboard Frontend</h1>
+        
+        <div>
+            <button onclick="testDashboardService()">🚀 Test Service Dashboard</button>
+            <button onclick="clearResults()">🧹 Effacer</button>
+        </div>
+        
+        <div id="results"></div>
+    </div>
+
+    <script>
+        let authToken = null;
+
+        function addResult(message, type = 'info', data = null) {
+            const div = document.createElement('div');
+            div.className = `result ${type}`;
+            div.innerHTML = message;
+            if (data) {
+                div.innerHTML += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+            }
+            document.getElementById('results').appendChild(div);
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+
+        async function login() {
+            try {
+                const response = await fetch('http://localhost:3002/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: 'admin@test.com',
+                        password: 'admin123'
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+                }
+
+                const data = await response.json();
+                if (data.success) {
+                    authToken = data.data.token;
+                    return true;
+                } else {
+                    throw new Error('Login failed: ' + JSON.stringify(data));
+                }
+            } catch (error) {
+                addResult(`❌ Erreur d'authentification: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        async function testDashboardService() {
+            clearResults();
+            addResult('🔑 Connexion...', 'info');
+            
+            if (!await login()) {
+                return;
+            }
+            addResult('✅ Authentification réussie', 'success');
+
+            try {
+                addResult('📊 Test du service dashboard...', 'info');
+
+                // Simuler exactement le service dashboard
+                const year = 2025;
+                
+                // Récupérer toutes les statistiques en parallèle
+                const [loyersResponse, chargesResponse, biensResponse, locatairesResponse] = await Promise.allSettled([
+                    fetch('http://localhost:3002/api/loyers/stats', {
+                        headers: { 'Authorization': `Bearer ${authToken}` }
+                    }).then(r => {
+                        if (!r.ok) throw new Error(`Loyers API error: ${r.status}`);
+                        return r.json();
+                    }).catch(err => {
+                        console.error('❌ Erreur loyers stats:', err);
+                        return { data: { data: { totaux: {}, revenus: { annee: 0, parMois: [] } } } };
+                    }),
+                    
+                    fetch(`http://localhost:3002/api/charges/stats?annee=${year}`, {
+                        headers: { 'Authorization': `Bearer ${authToken}` }
+                    }).then(r => {
+                        if (!r.ok) throw new Error(`Charges API error: ${r.status}`);
+                        return r.json();
+                    }).catch(err => {
+                        console.error('❌ Erreur charges stats:', err);
+                        return { data: { data: { total: { montant: 0, nombre: 0 }, payees: { montant: 0, nombre: 0 }, nonPayees: { montant: 0, nombre: 0 }, parMois: [] } } };
+                    }),
+                    
+                    fetch('http://localhost:3002/api/biens?limit=1000', {
+                        headers: { 'Authorization': `Bearer ${authToken}` }
+                    }).then(r => {
+                        if (!r.ok) throw new Error(`Biens API error: ${r.status}`);
+                        return r.json();
+                    }).catch(err => {
+                        console.error('❌ Erreur biens:', err);
+                        return { data: { data: [] } };
+                    }),
+                    
+                    fetch('http://localhost:3002/api/locataires?limit=1000', {
+                        headers: { 'Authorization': `Bearer ${authToken}` }
+                    }).then(r => {
+                        if (!r.ok) throw new Error(`Locataires API error: ${r.status}`);
+                        return r.json();
+                    }).catch(err => {
+                        console.error('❌ Erreur locataires:', err);
+                        return { data: { data: [] } };
+                    })
+                ]);
+
+                // Vérifier les résultats
+                addResult('📊 Résultats des APIs:', 'info', {
+                    loyersStatus: loyersResponse.status,
+                    chargesStatus: chargesResponse.status,
+                    biensStatus: biensResponse.status,
+                    locatairesStatus: locatairesResponse.status
+                });
+
+                // Extraire les valeurs des résultats
+                const loyersResult = loyersResponse.status === 'fulfilled' ? loyersResponse.value : loyersResponse.reason;
+                const chargesResult = chargesResponse.status === 'fulfilled' ? chargesResponse.value : chargesResponse.reason;
+                const biensResult = biensResponse.status === 'fulfilled' ? biensResponse.value : biensResponse.reason;
+                const locatairesResult = locatairesResponse.status === 'fulfilled' ? locatairesResponse.value : locatairesResponse.reason;
+
+                addResult('📊 Données extraites:', 'info', {
+                    loyersData: loyersResult.data?.data,
+                    chargesData: chargesResult.data?.data,
+                    biensCount: Array.isArray(biensResult.data?.data) ? biensResult.data.data.length : 0,
+                    locatairesCount: Array.isArray(locatairesResult.data?.data) ? locatairesResult.data.data.length : 0
+                });
+
+                const loyersData = loyersResult.data?.data || { totaux: {}, revenus: { annee: 0, parMois: [] } };
+                const chargesData = chargesResult.data?.data || { total: { montant: 0, nombre: 0 }, payees: { montant: 0, nombre: 0 }, nonPayees: { montant: 0, nombre: 0 }, parMois: [] };
+                const biensData = biensResult.data?.data || [];
+                const locatairesData = locatairesResult.data?.data || [];
+
+                // Construire les statistiques consolidées
+                const stats = {
+                    loyers: {
+                        totaux: loyersData.totaux || {
+                            enAttente: 0,
+                            enRetard: 0,
+                            partiels: 0,
+                            payes: 0,
+                            total: 0
+                        },
+                        revenus: {
+                            annee: loyersData.revenus?.annee || 0,
+                            parMois: loyersData.revenus?.parMois || []
+                        }
+                    },
+                    charges: {
+                        total: chargesData.total || { montant: 0, nombre: 0 },
+                        payees: chargesData.payees || { montant: 0, nombre: 0 },
+                        nonPayees: chargesData.nonPayees || { montant: 0, nombre: 0 },
+                        parMois: chargesData.parMois || []
+                    },
+                    biens: {
+                        total: biensData.length || 0,
+                        occupes: biensData.filter(b => b.statut === 'OCCUPE').length || 0,
+                        vacants: biensData.filter(b => b.statut === 'VACANT').length || 0
+                    },
+                    locataires: {
+                        total: locatairesData.length || 0,
+                        actifs: locatairesData.filter(l => l.statut === 'ACTIF').length || 0
+                    }
+                };
+
+                addResult('✅ Statistiques consolidées construites:', 'success', stats);
+
+                // Préparer les données pour les graphiques
+                const monthNames = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun',
+                                   'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
+
+                const chartData = monthNames.map((name, index) => {
+                    const mois = index + 1;
+                    
+                    // Trouver les données du mois dans les statistiques loyers
+                    const loyersMois = stats.loyers.revenus.parMois.find(m => m.mois === mois);
+                    const revenus = loyersMois ? (loyersMois._sum.montantPaye || 0) : 0;
+                    
+                    // Trouver les données du mois dans les statistiques charges
+                    const chargesMois = stats.charges.parMois?.find(m => {
+                        const [, month] = m.mois.split('-');
+                        return parseInt(month) === mois;
+                    });
+                    const charges = chargesMois ? chargesMois.total : 0;
+
+                    return {
+                        name,
+                        revenus,
+                        charges,
+                        benefice: revenus - charges
+                    };
+                });
+
+                const nonZeroMonths = chartData.filter(m => m.revenus > 0 || m.charges > 0);
+                
+                addResult('📈 Données graphiques préparées:', 'success', {
+                    totalMonths: chartData.length,
+                    nonZeroMonths: nonZeroMonths.length,
+                    chartData: nonZeroMonths
+                });
+
+                // Résumé final
+                const summary = {
+                    'Total revenus': `${stats.loyers.revenus.annee}€`,
+                    'Total charges': `${stats.charges.total.montant}€`,
+                    'Bénéfice net': `${stats.loyers.revenus.annee - stats.charges.total.montant}€`,
+                    'Nombre de biens': stats.biens.total,
+                    'Nombre de locataires': stats.locataires.total,
+                    'Mois avec données': nonZeroMonths.length
+                };
+
+                addResult('📋 RÉSUMÉ FINAL - Ce que le dashboard devrait afficher:', 'success', summary);
+
+            } catch (error) {
+                addResult(`❌ Erreur service dashboard: ${error.message}`, 'error');
+                console.error('Erreur complète:', error);
+            }
+        }
+
+        // Auto-start
+        window.onload = function() {
+            addResult('🔧 Outil de test du service dashboard chargé', 'info');
+            addResult('Cliquez sur "Test Service Dashboard" pour simuler exactement ce que fait le frontend', 'info');
+        };
+    </script>
+</body>
+</html>

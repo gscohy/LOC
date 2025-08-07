@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Login - Gestion Locative</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .result { margin: 10px 0; padding: 10px; border-radius: 4px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        button { padding: 10px 20px; margin: 5px; }
+        input { padding: 8px; margin: 5px; width: 200px; }
+    </style>
+</head>
+<body>
+    <h1>Test de Connexion - Gestion Locative</h1>
+    
+    <div>
+        <h3>1. Test de connexion</h3>
+        <input type="email" id="email" value="admin@test.com" placeholder="Email">
+        <input type="password" id="password" value="password" placeholder="Mot de passe">
+        <button onclick="testLogin()">Se connecter</button>
+        <button onclick="testCurrentUser()">Vérifier utilisateur actuel</button>
+        <button onclick="testProprietaires()">Test API Propriétaires</button>
+        <button onclick="clearStorage()">Vider localStorage</button>
+    </div>
+    
+    <div id="results"></div>
+
+    <script>
+        const API_BASE = 'http://localhost:3002/api';
+        
+        function addResult(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `result ${type}`;
+            div.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong>: ${message}`;
+            document.getElementById('results').appendChild(div);
+            div.scrollIntoView();
+        }
+        
+        async function testLogin() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            addResult('Tentative de connexion...', 'info');
+            
+            try {
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    localStorage.setItem('auth_token', data.data.token);
+                    addResult(`Connexion réussie ! Token sauvé. Utilisateur: ${data.data.user.prenom} ${data.data.user.nom}`, 'success');
+                } else {
+                    addResult(`Erreur de connexion: ${data.error?.message || 'Erreur inconnue'}`, 'error');
+                }
+            } catch (error) {
+                addResult(`Erreur réseau: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testCurrentUser() {
+            const token = localStorage.getItem('auth_token');
+            
+            if (!token) {
+                addResult('Aucun token trouvé. Connectez-vous d\'abord.', 'error');
+                return;
+            }
+            
+            addResult('Test utilisateur actuel...', 'info');
+            
+            try {
+                const response = await fetch(`${API_BASE}/auth/me`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    addResult(`Utilisateur actuel: ${data.data.prenom} ${data.data.nom} (${data.data.email})`, 'success');
+                } else {
+                    addResult(`Erreur utilisateur: ${data.error?.message || 'Token invalide'}`, 'error');
+                    if (response.status === 401) {
+                        localStorage.removeItem('auth_token');
+                        addResult('Token expiré, supprimé du localStorage', 'info');
+                    }
+                }
+            } catch (error) {
+                addResult(`Erreur réseau: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testProprietaires() {
+            const token = localStorage.getItem('auth_token');
+            
+            if (!token) {
+                addResult('Aucun token trouvé. Connectez-vous d\'abord.', 'error');
+                return;
+            }
+            
+            addResult('Test API Propriétaires...', 'info');
+            
+            try {
+                const response = await fetch(`${API_BASE}/proprietaires`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    addResult(`API Propriétaires OK: ${data.data.proprietaires.length} propriétaires trouvés`, 'success');
+                } else {
+                    addResult(`Erreur API Propriétaires: ${data.error?.message || 'Erreur inconnue'}`, 'error');
+                }
+            } catch (error) {
+                addResult(`Erreur réseau: ${error.message}`, 'error');
+            }
+        }
+        
+        function clearStorage() {
+            localStorage.clear();
+            addResult('localStorage vidé', 'info');
+        }
+        
+        // Vérifier l'état initial
+        window.onload = function() {
+            const token = localStorage.getItem('auth_token');
+            if (token) {
+                addResult(`Token existant trouvé: ${token.substring(0, 20)}...`, 'info');
+                testCurrentUser();
+            } else {
+                addResult('Aucun token trouvé dans localStorage', 'info');
+            }
+        };
+    </script>
+</body>
+</html>

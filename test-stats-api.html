@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test API Statistiques</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .result { margin: 20px 0; padding: 10px; border-radius: 5px; white-space: pre-wrap; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        button { padding: 10px 20px; margin: 10px 0; cursor: pointer; }
+        pre { background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test API Statistiques</h1>
+    
+    <div>
+        <button onclick="autoLogin()">🔑 Auto Login</button>
+        <button onclick="testLoyersStats()">📊 Test Loyers Stats</button>
+        <button onclick="testChargesStats()">💰 Test Charges Stats</button>
+        <button onclick="testAllStats()">🎯 Test Toutes Stats</button>
+    </div>
+    
+    <div id="results"></div>
+
+    <script>
+        let authToken = null;
+
+        function addResult(message, isSuccess = true) {
+            const div = document.createElement('div');
+            div.className = `result ${isSuccess ? 'success' : 'error'}`;
+            div.textContent = message;
+            document.getElementById('results').appendChild(div);
+        }
+
+        function addJsonResult(data, title) {
+            const div = document.createElement('div');
+            div.innerHTML = `<h3>${title}</h3><pre>${JSON.stringify(data, null, 2)}</pre>`;
+            document.getElementById('results').appendChild(div);
+        }
+
+        async function autoLogin() {
+            try {
+                const response = await fetch('http://localhost:3002/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: 'admin@test.com',
+                        password: 'admin123'
+                    })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    authToken = data.data.token;
+                    addResult(`✅ Login OK - Token obtenu`, true);
+                } else {
+                    addResult(`❌ Login Failed: ${JSON.stringify(data)}`, false);
+                }
+            } catch (error) {
+                addResult(`❌ Login Error: ${error.message}`, false);
+            }
+        }
+
+        async function testLoyersStats() {
+            if (!authToken) {
+                addResult('❌ Pas de token - Faites d\'abord le login', false);
+                return;
+            }
+
+            try {
+                console.log('🔍 Test statistiques loyers...');
+                const response = await fetch('http://localhost:3002/api/loyers/stats', {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status} - ${errorText}`);
+                }
+
+                const data = await response.json();
+                addResult(`✅ Statistiques loyers OK`, true);
+                addJsonResult(data.data, '📊 Statistiques Loyers');
+
+            } catch (error) {
+                console.error('❌ Erreur stats loyers:', error);
+                addResult(`❌ Erreur stats loyers: ${error.message}`, false);
+            }
+        }
+
+        async function testChargesStats() {
+            if (!authToken) {
+                addResult('❌ Pas de token - Faites d\'abord le login', false);
+                return;
+            }
+
+            try {
+                console.log('🔍 Test statistiques charges...');
+                const response = await fetch('http://localhost:3002/api/charges/stats?annee=2025', {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status} - ${errorText}`);
+                }
+
+                const data = await response.json();
+                addResult(`✅ Statistiques charges OK`, true);
+                addJsonResult(data.data, '💰 Statistiques Charges 2025');
+
+            } catch (error) {
+                console.error('❌ Erreur stats charges:', error);
+                addResult(`❌ Erreur stats charges: ${error.message}`, false);
+            }
+        }
+
+        async function testAllStats() {
+            if (!authToken) {
+                addResult('❌ Pas de token - Faites d\'abord le login', false);
+                return;
+            }
+
+            // Test des endpoints pour comprendre la structure des données
+            const endpoints = [
+                { name: 'Loyers Stats', url: '/api/loyers/stats' },
+                { name: 'Charges Stats 2025', url: '/api/charges/stats?annee=2025' },
+                { name: 'Charges Stats (sans année)', url: '/api/charges/stats' },
+                { name: 'Biens', url: '/api/biens?limit=5' },
+                { name: 'Loyers récents', url: '/api/loyers?limit=5' }
+            ];
+
+            for (const endpoint of endpoints) {
+                try {
+                    const response = await fetch(`http://localhost:3002${endpoint.url}`, {
+                        headers: { 'Authorization': `Bearer ${authToken}` }
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        addResult(`✅ ${endpoint.name} OK`, true);
+                        addJsonResult(data.data, `📋 ${endpoint.name}`);
+                    } else {
+                        addResult(`❌ ${endpoint.name} failed: ${response.status}`, false);
+                    }
+                } catch (error) {
+                    addResult(`❌ ${endpoint.name} error: ${error.message}`, false);
+                }
+            }
+        }
+
+        // Auto-test au chargement
+        window.onload = function() {
+            addResult('🚀 Page de test statistiques chargée', true);
+        };
+    </script>
+</body>
+</html>

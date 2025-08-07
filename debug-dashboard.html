@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Dashboard - Pas de données</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; }
+        .result { margin: 15px 0; padding: 10px; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        button { padding: 10px 20px; margin: 10px 5px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 4px; }
+        button:hover { background: #0056b3; }
+        pre { background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto; font-size: 12px; }
+        .step { margin: 20px 0; padding: 15px; border-left: 4px solid #007bff; background: #f8f9fa; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 20px 0; }
+        .stat-card { background: #fff; border: 1px solid #ddd; padding: 15px; border-radius: 8px; text-align: center; }
+        .stat-value { font-size: 1.5rem; font-weight: bold; margin-bottom: 5px; }
+        .stat-label { color: #666; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Debug Dashboard - Pourquoi pas de données ?</h1>
+        
+        <div class="step">
+            <h3>🎯 Objectif : Comprendre pourquoi le dashboard n'affiche pas de données</h3>
+            <p>Nous allons tester chaque étape de récupération des données pour identifier le problème.</p>
+        </div>
+
+        <div>
+            <button onclick="fullDiagnostic()">🚀 Diagnostic Complet</button>
+            <button onclick="clearResults()">🧹 Effacer</button>
+            <button onclick="testStep1()">1️⃣ Test Login</button>
+            <button onclick="testStep2()">2️⃣ Test APIs</button>
+            <button onclick="testStep3()">3️⃣ Test Service Dashboard</button>
+            <button onclick="testStep4()">4️⃣ Simuler Frontend</button>
+        </div>
+        
+        <div id="results"></div>
+        <div id="stats" class="stats-grid" style="display: none;"></div>
+    </div>
+
+    <script>
+        let authToken = null;
+        let debugData = {};
+
+        function addResult(message, type = 'info', data = null) {
+            const div = document.createElement('div');
+            div.className = `result ${type}`;
+            div.innerHTML = message;
+            if (data) {
+                div.innerHTML += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+            }
+            document.getElementById('results').appendChild(div);
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+            document.getElementById('stats').style.display = 'none';
+            debugData = {};
+        }
+
+        function showStats(stats) {
+            const statsDiv = document.getElementById('stats');
+            statsDiv.style.display = 'grid';
+            statsDiv.innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-value">${stats.loyers?.revenus?.annee || 0}€</div>
+                    <div class="stat-label">Revenus Annuels</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${stats.charges?.total?.montant || 0}€</div>
+                    <div class="stat-label">Total Charges</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${stats.biens?.total || 0}</div>
+                    <div class="stat-label">Nombre de Biens</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${stats.locataires?.total || 0}</div>
+                    <div class="stat-label">Locataires</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${(stats.loyers?.revenus?.annee || 0) - (stats.charges?.total?.montant || 0)}€</div>
+                    <div class="stat-label">Bénéfice Net</div>
+                </div>
+            `;
+        }
+
+        async function testStep1() {
+            addResult('🔑 ÉTAPE 1: Test d\'authentification', 'info');
+            
+            try {
+                const response = await fetch('http://localhost:3002/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: 'admin@test.com',
+                        password: 'admin123'
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+                }
+
+                const data = await response.json();
+                if (data.success) {
+                    authToken = data.data.token;
+                    addResult('✅ Authentification réussie', 'success');
+                    debugData.auth = true;
+                } else {
+                    throw new Error('Login failed: ' + JSON.stringify(data));
+                }
+            } catch (error) {
+                addResult(`❌ Erreur d'authentification: ${error.message}`, 'error');
+                debugData.auth = false;
+                return false;
+            }
+            return true;
+        }
+
+        async function testStep2() {
+            if (!authToken) {
+                addResult('❌ Pas de token - Exécutez d\'abord l\'étape 1', 'error');
+                return false;
+            }
+
+            addResult('📊 ÉTAPE 2: Test des APIs individuelles', 'info');
+            
+            const apis = [
+                { name: 'Loyers Stats', url: '/api/loyers/stats' },
+                { name: 'Charges Stats', url: '/api/charges/stats?annee=2025' },
+                { name: 'Biens', url: '/api/biens?limit=10' },
+                { name: 'Locataires', url: '/api/locataires?limit=10' }
+            ];
+
+            debugData.apis = {};
+
+            for (const api of apis) {
+                try {
+                    const response = await fetch(`http://localhost:3002${api.url}`, {
+                        headers: { 'Authorization': `Bearer ${authToken}` }
+                    });
+
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        throw new Error(`HTTP ${response.status}: ${errorText}`);
+                    }
+
+                    const data = await response.json();
+                    addResult(`✅ ${api.name}: OK`, 'success', {
+                        url: api.url,
+                        dataKeys: Object.keys(data.data || {}),
+                        dataPreview: JSON.stringify(data.data).substring(0, 200) + '...'
+                    });
+                    debugData.apis[api.name] = { success: true, data: data.data };
+
+                } catch (error) {
+                    addResult(`❌ ${api.name}: ${error.message}`, 'error');
+                    debugData.apis[api.name] = { success: false, error: error.message };
+                }
+            }
+
+            return true;
+        }
+
+        async function testStep3() {
+            if (!authToken) {
+                addResult('❌ Pas de token - Exécutez d\'abord l\'étape 1', 'error');
+                return false;
+            }
+
+            addResult('🏗️ ÉTAPE 3: Simulation du service dashboard', 'info');
+
+            try {
+                // Simuler exactement ce que fait le service dashboard
+                const [loyersRes, chargesRes, biensRes, locatairesRes] = await Promise.allSettled([
+                    fetch('http://localhost:3002/api/loyers/stats', {
+                        headers: { 'Authorization': `Bearer ${authToken}` }
+                    }).then(r => r.json()),
+                    
+                    fetch('http://localhost:3002/api/charges/stats?annee=2025', {
+                        headers: { 'Authorization': `Bearer ${authToken}` }
+                    }).then(r => r.json()),
+                    
+                    fetch('http://localhost:3002/api/biens?limit=1000', {
+                        headers: { 'Authorization': `Bearer ${authToken}` }  
+                    }).then(r => r.json()),
+                    
+                    fetch('http://localhost:3002/api/locataires?limit=1000', {
+                        headers: { 'Authorization': `Bearer ${authToken}` }
+                    }).then(r => r.json())
+                ]);
+
+                // Construire les stats comme le service
+                const loyersData = loyersRes.status === 'fulfilled' ? loyersRes.value.data : {};
+                const chargesData = chargesRes.status === 'fulfilled' ? chargesRes.value.data : {};
+                const biensData = biensRes.status === 'fulfilled' ? biensRes.value.data : [];
+                const locatairesData = locatairesRes.status === 'fulfilled' ? locatairesRes.value.data : [];
+
+                const stats = {
+                    loyers: {
+                        totaux: loyersData.totaux || { enAttente: 0, enRetard: 0, partiels: 0, payes: 0, total: 0 },
+                        revenus: {
+                            annee: loyersData.revenus?.annee || 0,
+                            parMois: loyersData.revenus?.parMois || []
+                        }
+                    },
+                    charges: {
+                        total: chargesData.total || { montant: 0, nombre: 0 },
+                        payees: chargesData.payees || { montant: 0, nombre: 0 },
+                        nonPayees: chargesData.nonPayees || { montant: 0, nombre: 0 },
+                        parMois: chargesData.parMois || []
+                    },
+                    biens: {
+                        total: Array.isArray(biensData) ? biensData.length : 0,
+                        occupes: Array.isArray(biensData) ? biensData.filter(b => b.statut === 'OCCUPE').length : 0,
+                        vacants: Array.isArray(biensData) ? biensData.filter(b => b.statut === 'VACANT').length : 0
+                    },
+                    locataires: {
+                        total: Array.isArray(locatairesData) ? locatairesData.length : 0,
+                        actifs: Array.isArray(locatairesData) ? locatairesData.filter(l => l.statut === 'ACTIF').length : 0
+                    }
+                };
+
+                addResult('✅ Service dashboard simulé avec succès', 'success', stats);
+                showStats(stats);
+                debugData.dashboardService = stats;
+
+                // Analyser les résultats
+                const issues = [];
+                if (stats.loyers.revenus.annee === 0) issues.push('Aucun revenu détecté');
+                if (stats.charges.total.montant === 0) issues.push('Aucune charge détectée');
+                if (stats.biens.total === 0) issues.push('Aucun bien détecté');
+                if (stats.locataires.total === 0) issues.push('Aucun locataire détecté');
+
+                if (issues.length > 0) {
+                    addResult(`⚠️ Problèmes détectés: ${issues.join(', ')}`, 'warning');
+                } else {
+                    addResult('✅ Toutes les données semblent présentes', 'success');
+                }
+
+            } catch (error) {
+                addResult(`❌ Erreur service dashboard: ${error.message}`, 'error');
+                debugData.dashboardService = { error: error.message };
+            }
+
+            return true;
+        }
+
+        async function testStep4() {
+            addResult('🎨 ÉTAPE 4: Simulation de l\'affichage frontend', 'info');
+            
+            if (!debugData.dashboardService) {
+                addResult('❌ Exécutez d\'abord l\'étape 3', 'error');
+                return false;
+            }
+
+            const stats = debugData.dashboardService;
+            
+            // Simuler la préparation des données pour les graphiques
+            const monthNames = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
+            const chartData = monthNames.map((name, index) => {
+                const mois = index + 1;
+                const loyersMois = stats.loyers.revenus.parMois.find(m => m.mois === mois);
+                const revenus = loyersMois ? (loyersMois._sum?.montantPaye || 0) : 0;
+                
+                const chargesMois = stats.charges.parMois?.find(m => {
+                    const [, month] = m.mois.split('-');
+                    return parseInt(month) === mois;
+                });
+                const charges = chargesMois ? chargesMois.total : 0;
+
+                return { name, revenus, charges, benefice: revenus - charges };
+            });
+
+            const nonZeroMonths = chartData.filter(m => m.revenus > 0 || m.charges > 0);
+            
+            addResult(`📈 Données graphiques: ${nonZeroMonths.length} mois avec données`, 
+                     nonZeroMonths.length > 0 ? 'success' : 'warning', 
+                     { chartData: nonZeroMonths });
+
+            // Résumé final
+            const summary = {
+                'Total revenus': `${stats.loyers.revenus.annee}€`,
+                'Total charges': `${stats.charges.total.montant}€`,
+                'Bénéfice net': `${stats.loyers.revenus.annee - stats.charges.total.montant}€`,
+                'Nombre de biens': stats.biens.total,
+                'Nombre de locataires': stats.locataires.total,
+                'Mois avec données': nonZeroMonths.length
+            };
+
+            addResult('📋 RÉSUMÉ FINAL', 'info', summary);
+
+            return true;
+        }
+
+        async function fullDiagnostic() {
+            clearResults();
+            addResult('🚀 DIAGNOSTIC COMPLET DÉMARRÉ', 'info');
+            
+            const step1 = await testStep1();
+            if (!step1) return;
+            
+            await testStep2();
+            await testStep3();
+            await testStep4();
+            
+            addResult('🏁 DIAGNOSTIC TERMINÉ', 'success');
+        }
+
+        // Auto-start
+        window.onload = function() {
+            addResult('🔧 Outil de diagnostic du dashboard chargé', 'info');
+            addResult('Cliquez sur "Diagnostic Complet" pour commencer l\'analyse', 'info');
+        };
+    </script>
+</body>
+</html>

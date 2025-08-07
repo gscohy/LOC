@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Glisser-Déposer</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 20px; 
+            background: #f5f5f5;
+        }
+        .container { 
+            max-width: 600px; 
+            margin: 0 auto; 
+            background: white; 
+            padding: 30px; 
+            border-radius: 10px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .drop-zone {
+            border: 2px dashed #cbd5e0;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            background: #f7fafc;
+        }
+        .drop-zone:hover {
+            border-color: #a0aec0;
+            background: #edf2f7;
+        }
+        .drop-zone.drag-over {
+            border-color: #4299e1;
+            background: #ebf8ff;
+            transform: scale(1.02);
+        }
+        .file-info {
+            background: #f0fff4;
+            border: 1px solid #68d391;
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 10px;
+        }
+        .file-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+        .instructions {
+            color: #4a5568;
+            margin-bottom: 20px;
+        }
+        .result {
+            margin: 15px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .success {
+            background: #f0fff4;
+            color: #22543d;
+            border: 1px solid #68d391;
+        }
+        .error {
+            background: #fed7d7;
+            color: #742a2a;
+            border: 1px solid #feb2b2;
+        }
+        #file-input {
+            display: none;
+        }
+        button {
+            background: #4299e1;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #3182ce;
+        }
+        button.remove {
+            background: #e53e3e;
+        }
+        button.remove:hover {
+            background: #c53030;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Test du Glisser-Déposer</h1>
+        
+        <div class="instructions">
+            <p>Testez le glisser-déposer en :</p>
+            <ul>
+                <li>Glissant un fichier depuis votre explorateur</li>
+                <li>Cliquant sur la zone pour ouvrir le sélecteur</li>
+                <li>Formats acceptés: PNG, JPG, PDF, DOC, DOCX</li>
+                <li>Taille max: 10MB</li>
+            </ul>
+        </div>
+
+        <div id="drop-zone" class="drop-zone">
+            <input type="file" id="file-input" accept="image/*,.pdf,.doc,.docx">
+            <div class="file-icon">📄</div>
+            <div>
+                <p><strong>Glissez-déposez votre fichier ici</strong></p>
+                <p style="font-size: 14px; color: #718096;">ou cliquez pour parcourir vos fichiers</p>
+            </div>
+        </div>
+
+        <div id="file-info" style="display: none;"></div>
+        
+        <div id="results"></div>
+    </div>
+
+    <script>
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const fileInfo = document.getElementById('file-info');
+        const results = document.getElementById('results');
+        
+        let selectedFile = null;
+
+        function addResult(message, isSuccess = true) {
+            const div = document.createElement('div');
+            div.className = `result ${isSuccess ? 'success' : 'error'}`;
+            div.innerHTML = message;
+            results.appendChild(div);
+        }
+
+        function validateFile(file) {
+            // Taille
+            if (file.size > 10 * 1024 * 1024) {
+                return 'Fichier trop volumineux (max 10MB)';
+            }
+
+            // Type
+            const allowedTypes = [
+                'image/png', 'image/jpeg', 'image/jpg', 'image/gif',
+                'application/pdf',
+                'application/msword',
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            ];
+
+            if (!allowedTypes.includes(file.type)) {
+                return 'Format de fichier non supporté';
+            }
+
+            return null;
+        }
+
+        function displayFile(file) {
+            selectedFile = file;
+            
+            const error = validateFile(file);
+            if (error) {
+                addResult(`❌ ${error}`, false);
+                return;
+            }
+
+            fileInfo.style.display = 'block';
+            fileInfo.innerHTML = `
+                <div class="file-info">
+                    <h3>✅ Fichier sélectionné</h3>
+                    <p><strong>Nom:</strong> ${file.name}</p>
+                    <p><strong>Type:</strong> ${file.type}</p>
+                    <p><strong>Taille:</strong> ${(file.size / 1024).toFixed(1)} KB</p>
+                    <button onclick="removeFile()">Supprimer</button>
+                    <button onclick="simulateUpload()">Simuler Upload</button>
+                </div>
+            `;
+            
+            addResult(`✅ Fichier "${file.name}" prêt pour upload`, true);
+        }
+
+        function removeFile() {
+            selectedFile = null;
+            fileInfo.style.display = 'none';
+            fileInput.value = '';
+            addResult('🗑️ Fichier supprimé', true);
+        }
+
+        function simulateUpload() {
+            if (!selectedFile) return;
+            
+            addResult('🔄 Simulation d\'upload...', true);
+            
+            // Simulation d'upload
+            setTimeout(() => {
+                addResult(`✅ Upload simulé réussi pour "${selectedFile.name}"`, true);
+            }, 1000);
+        }
+
+        // Événements de glisser-déposer
+        dropZone.addEventListener('dragenter', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.add('drag-over');
+        });
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.add('drag-over');
+        });
+
+        dropZone.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Vérifier si on sort vraiment de la zone
+            const rect = dropZone.getBoundingClientRect();
+            const x = e.clientX;
+            const y = e.clientY;
+            
+            if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+                dropZone.classList.remove('drag-over');
+            }
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.remove('drag-over');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                displayFile(files[0]);
+                addResult('📂 Fichier déposé via glisser-déposer', true);
+            }
+        });
+
+        // Clic sur la zone
+        dropZone.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        // Sélection via input
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                displayFile(file);
+                addResult('📂 Fichier sélectionné via clic', true);
+            }
+        });
+
+        // Message initial
+        addResult('🚀 Test de glisser-déposer initialisé - Essayez de glisser un fichier !', true);
+    </script>
+</body>
+</html>

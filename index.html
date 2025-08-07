@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion Locative</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div id="app">
+        <header class="header">
+            <div class="header-content">
+                <h1><i class="fas fa-building"></i> Gestion Locative</h1>
+                <div class="user-menu">
+                    <span class="user-name">Administrateur</span>
+                    <button class="btn-logout"><i class="fas fa-sign-out-alt"></i></button>
+                </div>
+            </div>
+        </header>
+
+        <nav class="sidebar">
+            <ul class="nav-menu">
+                <li class="nav-item active" data-module="dashboard">
+                    <a href="#"><i class="fas fa-tachometer-alt"></i> Tableau de bord</a>
+                </li>
+                <li class="nav-item" data-module="proprietaires">
+                    <a href="#"><i class="fas fa-user-tie"></i> Propriétaires</a>
+                </li>
+                <li class="nav-item" data-module="biens">
+                    <a href="#"><i class="fas fa-home"></i> Biens immobiliers</a>
+                </li>
+                <li class="nav-item" data-module="locataires">
+                    <a href="#"><i class="fas fa-users"></i> Locataires</a>
+                </li>
+                <li class="nav-item" data-module="garants">
+                    <a href="#"><i class="fas fa-handshake"></i> Garants</a>
+                </li>
+                <li class="nav-item" data-module="contrats">
+                    <a href="#"><i class="fas fa-file-contract"></i> Contrats de location</a>
+                </li>
+                <li class="nav-item" data-module="loyers">
+                    <a href="#"><i class="fas fa-euro-sign"></i> Suivi des loyers</a>
+                </li>
+                <li class="nav-item" data-module="quittances">
+                    <a href="#"><i class="fas fa-receipt"></i> Quittances</a>
+                </li>
+                <li class="nav-item" data-module="charges">
+                    <a href="#"><i class="fas fa-calculator"></i> Charges bailleur</a>
+                </li>
+                <li class="nav-item" data-module="recherche">
+                    <a href="#"><i class="fas fa-search"></i> Recherche</a>
+                </li>
+                <li class="nav-item" data-module="fiscale">
+                    <a href="#"><i class="fas fa-file-invoice-dollar"></i> Synthèse fiscale</a>
+                </li>
+            </ul>
+        </nav>
+
+        <main class="main-content">
+            <div id="dashboard" class="module active">
+                <div class="module-header">
+                    <h2><i class="fas fa-tachometer-alt"></i> Tableau de bord</h2>
+                </div>
+                <div class="dashboard-grid">
+                    <div class="dashboard-card">
+                        <div class="card-header">
+                            <h3>Loyers du mois</h3>
+                            <i class="fas fa-euro-sign"></i>
+                        </div>
+                        <div class="card-content">
+                            <div class="stat-value">15 750 €</div>
+                            <div class="stat-detail">Sur 18 500 € attendus</div>
+                        </div>
+                    </div>
+                    <div class="dashboard-card">
+                        <div class="card-header">
+                            <h3>Retards</h3>
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <div class="card-content">
+                            <div class="stat-value warning">3</div>
+                            <div class="stat-detail">Locataires en retard</div>
+                        </div>
+                    </div>
+                    <div class="dashboard-card">
+                        <div class="card-header">
+                            <h3>Vacance</h3>
+                            <i class="fas fa-home"></i>
+                        </div>
+                        <div class="card-content">
+                            <div class="stat-value">2</div>
+                            <div class="stat-detail">Biens vacants</div>
+                        </div>
+                    </div>
+                    <div class="dashboard-card">
+                        <div class="card-header">
+                            <h3>Baux à renouveler</h3>
+                            <i class="fas fa-calendar-alt"></i>
+                        </div>
+                        <div class="card-content">
+                            <div class="stat-value attention">5</div>
+                            <div class="stat-detail">Dans les 3 mois</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="dashboard-charts">
+                    <div class="chart-container">
+                        <h3>Évolution des revenus</h3>
+                        <canvas id="revenueChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div id="proprietaires" class="module">
+                <div class="module-header">
+                    <h2><i class="fas fa-user-tie"></i> Propriétaires</h2>
+                    <button class="btn-primary" onclick="openModal('proprietaire-modal')">
+                        <i class="fas fa-plus"></i> Nouveau propriétaire
+                    </button>
+                </div>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Nom</th>
+                                <th>Prénom</th>
+                                <th>Email</th>
+                                <th>Biens</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="proprietaires-table">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="biens" class="module">
+                <div class="module-header">
+                    <h2><i class="fas fa-home"></i> Biens immobiliers</h2>
+                    <button class="btn-primary" onclick="openModal('bien-modal')">
+                        <i class="fas fa-plus"></i> Nouveau bien
+                    </button>
+                </div>
+                <div class="biens-grid" id="biens-grid">
+                </div>
+            </div>
+
+            <div id="locataires" class="module">
+                <div class="module-header">
+                    <h2><i class="fas fa-users"></i> Locataires</h2>
+                    <button class="btn-primary" onclick="openModal('locataire-modal')">
+                        <i class="fas fa-plus"></i> Nouveau locataire
+                    </button>
+                </div>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Civilité</th>
+                                <th>Nom</th>
+                                <th>Prénom</th>
+                                <th>Email</th>
+                                <th>Téléphone</th>
+                                <th>Bien occupé</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="locataires-table">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="garants" class="module">
+                <div class="module-header">
+                    <h2><i class="fas fa-handshake"></i> Garants</h2>
+                    <button class="btn-primary" onclick="openModal('garant-modal')">
+                        <i class="fas fa-plus"></i> Nouveau garant
+                    </button>
+                </div>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Civilité</th>
+                                <th>Nom</th>
+                                <th>Prénom</th>
+                                <th>Email</th>
+                                <th>Téléphone</th>
+                                <th>Locataire garanti</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="garants-table">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="contrats" class="module">
+                <div class="module-header">
+                    <h2><i class="fas fa-file-contract"></i> Contrats de location</h2>
+                    <button class="btn-primary" onclick="openModal('contrat-modal')">
+                        <i class="fas fa-plus"></i> Nouveau contrat
+                    </button>
+                </div>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Bien</th>
+                                <th>Locataire(s)</th>
+                                <th>Date début</th>
+                                <th>Date fin</th>
+                                <th>Loyer</th>
+                                <th>Charges</th>
+                                <th>Statut</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="contrats-table">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="loyers" class="module">
+                <div class="module-header">
+                    <h2><i class="fas fa-euro-sign"></i> Suivi des loyers</h2>
+                    <div class="module-filters">
+                        <select id="loyer-mois">
+                            <option value="">Tous les mois</option>
+                        </select>
+                        <select id="loyer-annee">
+                            <option value="">Toutes les années</option>
+                        </select>
+                        <select id="loyer-statut">
+                            <option value="">Tous les statuts</option>
+                            <option value="paye">Payé</option>
+                            <option value="attente">En attente</option>
+                            <option value="retard">En retard</option>
+                            <option value="partiel">Partiel</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Bien</th>
+                                <th>Locataire</th>
+                                <th>Mois</th>
+                                <th>Loyer dû</th>
+                                <th>Montant payé</th>
+                                <th>Solde</th>
+                                <th>Statut</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="loyers-table">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="quittances" class="module">
+                <div class="module-header">
+                    <h2><i class="fas fa-receipt"></i> Quittances</h2>
+                </div>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Bien</th>
+                                <th>Locataire</th>
+                                <th>Période</th>
+                                <th>Montant</th>
+                                <th>Statut</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="quittances-table">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="charges" class="module">
+                <div class="module-header">
+                    <h2><i class="fas fa-calculator"></i> Charges bailleur</h2>
+                    <button class="btn-primary" onclick="openModal('charge-modal')">
+                        <i class="fas fa-plus"></i> Nouvelle charge
+                    </button>
+                </div>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Bien</th>
+                                <th>Catégorie</th>
+                                <th>Description</th>
+                                <th>Montant</th>
+                                <th>Type</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="charges-table">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="recherche" class="module">
+                <div class="module-header">
+                    <h2><i class="fas fa-search"></i> Recherche</h2>
+                </div>
+                <div class="search-container">
+                    <div class="search-form">
+                        <input type="text" id="search-input" placeholder="Rechercher...">
+                        <select id="search-type">
+                            <option value="all">Tous</option>
+                            <option value="bien">Biens</option>
+                            <option value="locataire">Locataires</option>
+                            <option value="proprietaire">Propriétaires</option>
+                        </select>
+                        <button class="btn-primary" onclick="performSearch()">
+                            <i class="fas fa-search"></i> Rechercher
+                        </button>
+                    </div>
+                    <div id="search-results" class="search-results">
+                    </div>
+                </div>
+            </div>
+
+            <div id="fiscale" class="module">
+                <div class="module-header">
+                    <h2><i class="fas fa-file-invoice-dollar"></i> Synthèse fiscale</h2>
+                </div>
+                <div class="fiscale-form">
+                    <div class="form-group">
+                        <label>Période</label>
+                        <input type="date" id="fiscale-debut">
+                        <span>au</span>
+                        <input type="date" id="fiscale-fin">
+                    </div>
+                    <button class="btn-primary" onclick="generateFiscalReport()">
+                        <i class="fas fa-file-pdf"></i> Générer rapport
+                    </button>
+                </div>
+                <div id="fiscale-results" class="fiscale-results">
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="overlay" class="overlay"></div>
+
+    <script src="js/storage.js"></script>
+    <script src="js/models.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/modules/proprietaires.js"></script>
+    <script src="js/modules/biens.js"></script>
+    <script src="js/modules/locataires.js"></script>
+    <script src="js/modules/garants.js"></script>
+    <script src="js/modules/contrats.js"></script>
+    <script src="js/modules/loyers.js"></script>
+    <script src="js/modules/quittances.js"></script>
+    <script src="js/modules/charges.js"></script>
+    <script src="js/modules/dashboard.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

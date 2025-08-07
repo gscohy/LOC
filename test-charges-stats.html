@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Charges Stats</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .result { margin: 20px 0; padding: 10px; border-radius: 5px; white-space: pre-wrap; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        button { padding: 10px 20px; margin: 10px 0; cursor: pointer; }
+        pre { background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test Charges Stats API</h1>
+    
+    <div>
+        <button onclick="autoLogin()">🔑 Auto Login</button>
+        <button onclick="testChargesStats()">💰 Test /api/charges/stats</button>
+        <button onclick="testDashboardService()">📊 Test Dashboard Service</button>
+    </div>
+    
+    <div id="results"></div>
+
+    <script>
+        let authToken = null;
+
+        function addResult(message, isSuccess = true) {
+            const div = document.createElement('div');
+            div.className = `result ${isSuccess ? 'success' : 'error'}`;
+            div.textContent = message;
+            document.getElementById('results').appendChild(div);
+        }
+
+        function addJsonResult(data, title) {
+            const div = document.createElement('div');
+            div.innerHTML = `<h3>${title}</h3><pre>${JSON.stringify(data, null, 2)}</pre>`;
+            document.getElementById('results').appendChild(div);
+        }
+
+        async function autoLogin() {
+            try {
+                const response = await fetch('http://localhost:3002/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: 'admin@test.com',
+                        password: 'admin123'
+                    })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    authToken = data.data.token;
+                    addResult(`✅ Login OK - Token obtenu`, true);
+                } else {
+                    addResult(`❌ Login Failed: ${JSON.stringify(data)}`, false);
+                }
+            } catch (error) {
+                addResult(`❌ Login Error: ${error.message}`, false);
+            }
+        }
+
+        async function testChargesStats() {
+            if (!authToken) {
+                addResult('❌ Pas de token - Faites d\'abord le login', false);
+                return;
+            }
+
+            try {
+                console.log('🔍 Test /api/charges/stats...');
+                const response = await fetch('http://localhost:3002/api/charges/stats?annee=2025', {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                console.log('Response status:', response.status);
+                console.log('Response headers:', [...response.headers.entries()]);
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Error response:', errorText);
+                    throw new Error(`HTTP ${response.status} - ${errorText}`);
+                }
+
+                const data = await response.json();
+                addResult(`✅ Charges stats API OK`, true);
+                addJsonResult(data, '💰 Statistiques Charges 2025');
+
+            } catch (error) {
+                console.error('❌ Erreur charges stats:', error);
+                addResult(`❌ Erreur charges stats: ${error.message}`, false);
+            }
+        }
+
+        async function testDashboardService() {
+            if (!authToken) {
+                addResult('❌ Pas de token - Faites d\'abord le login', false);
+                return;
+            }
+
+            try {
+                console.log('🔍 Test dashboard service complet...');
+                
+                // Test des 4 appels en parallèle comme le fait le service
+                const [loyersResponse, chargesResponse, biensResponse, locatairesResponse] = await Promise.all([
+                    fetch('http://localhost:3002/api/loyers/stats', {
+                        headers: { 'Authorization': `Bearer ${authToken}` }
+                    }),
+                    fetch('http://localhost:3002/api/charges/stats?annee=2025', {
+                        headers: { 'Authorization': `Bearer ${authToken}` }
+                    }),
+                    fetch('http://localhost:3002/api/biens?limit=1000', {
+                        headers: { 'Authorization': `Bearer ${authToken}` }
+                    }),
+                    fetch('http://localhost:3002/api/locataires?limit=1000', {
+                        headers: { 'Authorization': `Bearer ${authToken}` }
+                    })
+                ]);
+
+                // Vérifier chaque réponse
+                if (!loyersResponse.ok) {
+                    const error = await loyersResponse.text();
+                    throw new Error(`Loyers stats failed: ${loyersResponse.status} - ${error}`);
+                }
+                
+                if (!chargesResponse.ok) {
+                    const error = await chargesResponse.text();
+                    throw new Error(`Charges stats failed: ${chargesResponse.status} - ${error}`);
+                }
+                
+                if (!biensResponse.ok) {
+                    const error = await biensResponse.text();
+                    throw new Error(`Biens failed: ${biensResponse.status} - ${error}`);
+                }
+                
+                if (!locatairesResponse.ok) {
+                    const error = await locatairesResponse.text();
+                    throw new Error(`Locataires failed: ${locatairesResponse.status} - ${error}`);
+                }
+
+                // Parser les réponses
+                const loyersData = await loyersResponse.json();
+                const chargesData = await chargesResponse.json();
+                const biensData = await biensResponse.json();
+                const locatairesData = await locatairesResponse.json();
+
+                addResult(`✅ Dashboard service complet OK`, true);
+                
+                addJsonResult(loyersData.data, '📊 Données Loyers');
+                addJsonResult(chargesData.data, '💰 Données Charges');
+                addJsonResult({ count: biensData.data.length }, '🏠 Biens Count');
+                addJsonResult({ count: locatairesData.data.length }, '👥 Locataires Count');
+
+            } catch (error) {
+                console.error('❌ Erreur dashboard service:', error);
+                addResult(`❌ Dashboard service error: ${error.message}`, false);
+            }
+        }
+
+        // Auto-test au chargement
+        window.onload = function() {
+            addResult('🚀 Page de test charges stats chargée', true);
+            addResult('Cliquez sur "Auto Login" puis "Test Charges Stats"', true);
+        };
+    </script>
+</body>
+</html>
