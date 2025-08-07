@@ -603,4 +603,270 @@ router.post('/templates/:id/preview', asyncHandler(async (req: AuthenticatedRequ
   });
 }));
 
+// @route   POST /api/emails/templates/init-defaults
+// @desc    Initialize default email templates if none exist
+// @access  Private
+router.post('/templates/init-defaults', asyncHandler(async (req: AuthenticatedRequest, res) => {
+  // Vérifier si des templates existent déjà
+  const existingTemplates = await prisma.emailTemplate.count();
+  
+  if (existingTemplates > 0) {
+    return res.json({
+      success: true,
+      message: `Des templates existent déjà (${existingTemplates} trouvé(s)). Initialisation ignorée.`,
+      data: { templatesCount: existingTemplates }
+    });
+  }
+
+  // Définir les templates par défaut
+  const defaultTemplates = [
+    {
+      nom: 'Rappel de loyer impayé',
+      sujet: 'Rappel de paiement - Loyer {{periode}} - {{bien_adresse}}',
+      contenu: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #2c3e50; margin: 0;">RAPPEL DE PAIEMENT</h1>
+            <p style="color: #7f8c8d; font-size: 14px;">Gestion Locative</p>
+          </div>
+
+          <div style="background-color: #f8f9fa; padding: 20px; border-left: 4px solid #e74c3c; margin: 20px 0;">
+            <h3 style="color: #e74c3c; margin-top: 0;">Loyer en retard de paiement</h3>
+            <p>Nous n'avons pas reçu le paiement de votre loyer pour la période de <strong>{{periode}}</strong>.</p>
+          </div>
+
+          <div style="margin: 20px 0;">
+            <h4>Informations du bien :</h4>
+            <ul style="list-style: none; padding: 0;">
+              <li><strong>Adresse :</strong> {{bien_adresse}}, {{bien_ville}} {{bien_codePostal}}</li>
+              <li><strong>Locataire :</strong> {{locataire_prenom}} {{locataire_nom}}</li>
+              <li><strong>Montant dû :</strong> {{montant_du}} €</li>
+              <li><strong>Nombre de jours de retard :</strong> {{nb_jours_retard}} jours</li>
+            </ul>
+          </div>
+
+          <div style="background-color: #fff3cd; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <p style="margin: 0;"><strong>Merci de régulariser votre situation dans les plus brefs délais.</strong></p>
+            <p style="margin: 10px 0 0 0; font-size: 14px;">En cas de difficultés, nous vous invitons à nous contacter rapidement.</p>
+          </div>
+
+          <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+            <p style="color: #7f8c8d; font-size: 12px;">
+              Cordialement,<br>
+              L'équipe de gestion locative
+            </p>
+          </div>
+        </div>
+      `,
+      type: 'RAPPEL_LOYER',
+      variables: JSON.stringify([
+        'locataire_nom', 'locataire_prenom', 'bien_adresse', 'bien_ville', 
+        'bien_codePostal', 'periode', 'montant_du', 'nb_jours_retard'
+      ]),
+      actif: true
+    },
+    {
+      nom: 'Quittance de loyer',
+      sujet: 'Quittance de loyer - {{periode}} - {{bien_adresse}}',
+      contenu: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #27ae60; margin: 0;">QUITTANCE DE LOYER</h1>
+            <p style="color: #7f8c8d; font-size: 14px;">Gestion Locative</p>
+          </div>
+
+          <div style="background-color: #d4edda; padding: 20px; border-left: 4px solid #27ae60; margin: 20px 0;">
+            <h3 style="color: #27ae60; margin-top: 0;">Paiement reçu avec succès</h3>
+            <p>Nous accusons réception de votre paiement pour la période de <strong>{{periode}}</strong>.</p>
+          </div>
+
+          <div style="margin: 20px 0;">
+            <h4>Détails du paiement :</h4>
+            <table style="width: 100%; border-collapse: collapse; margin: 10px 0;">
+              <tr style="background-color: #f8f9fa;">
+                <td style="padding: 10px; border: 1px solid #ddd;"><strong>Locataire</strong></td>
+                <td style="padding: 10px; border: 1px solid #ddd;">{{locataire_prenom}} {{locataire_nom}}</td>
+              </tr>
+              <tr>
+                <td style="padding: 10px; border: 1px solid #ddd;"><strong>Bien</strong></td>
+                <td style="padding: 10px; border: 1px solid #ddd;">{{bien_adresse}}, {{bien_ville}} {{bien_codePostal}}</td>
+              </tr>
+              <tr style="background-color: #f8f9fa;">
+                <td style="padding: 10px; border: 1px solid #ddd;"><strong>Période</strong></td>
+                <td style="padding: 10px; border: 1px solid #ddd;">{{periode}}</td>
+              </tr>
+              <tr>
+                <td style="padding: 10px; border: 1px solid #ddd;"><strong>Montant</strong></td>
+                <td style="padding: 10px; border: 1px solid #ddd;"><strong>{{loyer_montant}} €</strong></td>
+              </tr>
+              <tr style="background-color: #f8f9fa;">
+                <td style="padding: 10px; border: 1px solid #ddd;"><strong>Date de paiement</strong></td>
+                <td style="padding: 10px; border: 1px solid #ddd;">{{date_paiement}}</td>
+              </tr>
+            </table>
+          </div>
+
+          <div style="background-color: #e8f5e8; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <p style="margin: 0; text-align: center;"><strong>✓ Paiement confirmé et enregistré</strong></p>
+          </div>
+
+          <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+            <p style="color: #7f8c8d; font-size: 12px;">
+              Merci pour votre ponctualité.<br>
+              L'équipe de gestion locative
+            </p>
+          </div>
+        </div>
+      `,
+      type: 'QUITTANCE',
+      variables: JSON.stringify([
+        'locataire_nom', 'locataire_prenom', 'bien_adresse', 'bien_ville', 
+        'bien_codePostal', 'periode', 'loyer_montant', 'date_paiement'
+      ]),
+      actif: true
+    },
+    {
+      nom: 'Relance en cas de non-paiement',
+      sujet: 'RELANCE URGENTE - Loyer impayé depuis {{nb_jours_retard}} jours - {{bien_adresse}}',
+      contenu: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #dc3545; margin: 0;">RELANCE URGENTE</h1>
+            <p style="color: #7f8c8d; font-size: 14px;">Gestion Locative</p>
+          </div>
+
+          <div style="background-color: #f8d7da; padding: 20px; border-left: 4px solid #dc3545; margin: 20px 0;">
+            <h3 style="color: #dc3545; margin-top: 0;">⚠️ Situation préoccupante</h3>
+            <p>Malgré notre précédent rappel, nous n'avons toujours pas reçu le règlement de votre loyer.</p>
+            <p><strong>Retard actuel : {{nb_jours_retard}} jours</strong></p>
+          </div>
+
+          <div style="margin: 20px 0;">
+            <h4>Récapitulatif de la situation :</h4>
+            <ul style="list-style: none; padding: 0;">
+              <li style="padding: 5px 0;"><strong>Locataire :</strong> {{locataire_prenom}} {{locataire_nom}}</li>
+              <li style="padding: 5px 0;"><strong>Bien :</strong> {{bien_adresse}}, {{bien_ville}} {{bien_codePostal}}</li>
+              <li style="padding: 5px 0; color: #dc3545;"><strong>Montant dû :</strong> {{montant_du}} €</li>
+              <li style="padding: 5px 0; color: #dc3545;"><strong>Date limite de régularisation :</strong> {{date_limite}}</li>
+            </ul>
+          </div>
+
+          <div style="background-color: #fff3cd; padding: 20px; border-radius: 5px; margin: 20px 0; border: 1px solid #ffeaa7;">
+            <h4 style="color: #856404; margin-top: 0;">⚡ Action requise immédiatement</h4>
+            <p style="margin: 10px 0;">
+              <strong>Vous devez régulariser votre situation avant le {{date_limite}}.</strong>
+            </p>
+            <p style="margin: 10px 0;">
+              À défaut, nous serons contraints d'engager les procédures légales appropriées, 
+              incluant une éventuelle procédure d'expulsion.
+            </p>
+          </div>
+
+          <div style="background-color: #d1ecf1; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <p style="margin: 0; font-size: 14px;">
+              <strong>💡 Besoin d'aide ?</strong><br>
+              Si vous rencontrez des difficultés financières temporaires, contactez-nous immédiatement 
+              pour étudier ensemble une solution amiable.
+            </p>
+          </div>
+
+          <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+            <p style="color: #7f8c8d; font-size: 12px;">
+              Dans l'attente d'une régularisation rapide,<br>
+              L'équipe de gestion locative
+            </p>
+          </div>
+        </div>
+      `,
+      type: 'RELANCE',
+      variables: JSON.stringify([
+        'locataire_nom', 'locataire_prenom', 'bien_adresse', 'bien_ville', 
+        'bien_codePostal', 'montant_du', 'nb_jours_retard', 'date_limite'
+      ]),
+      actif: true
+    },
+    {
+      nom: 'Email de bienvenue nouveau locataire',
+      sujet: 'Bienvenue ! Informations importantes pour votre nouveau logement - {{bien_adresse}}',
+      contenu: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #17a2b8; margin: 0;">🏠 BIENVENUE !</h1>
+            <p style="color: #7f8c8d; font-size: 14px;">Gestion Locative</p>
+          </div>
+
+          <div style="background-color: #d1ecf1; padding: 20px; border-left: 4px solid #17a2b8; margin: 20px 0;">
+            <h3 style="color: #17a2b8; margin-top: 0;">Félicitations pour votre nouveau logement !</h3>
+            <p>Nous vous souhaitons la bienvenue dans votre nouveau logement et espérons que vous vous y plairez.</p>
+          </div>
+
+          <div style="margin: 20px 0;">
+            <h4>🏡 Informations de votre logement :</h4>
+            <ul style="list-style: none; padding: 0;">
+              <li style="padding: 5px 0;"><strong>Locataire :</strong> {{locataire_prenom}} {{locataire_nom}}</li>
+              <li style="padding: 5px 0;"><strong>Adresse :</strong> {{bien_adresse}}, {{bien_ville}} {{bien_codePostal}}</li>
+              <li style="padding: 5px 0;"><strong>Date d'entrée :</strong> {{date_entree}}</li>
+              <li style="padding: 5px 0;"><strong>Propriétaire :</strong> {{proprietaire_nom}}</li>
+            </ul>
+          </div>
+
+          <div style="background-color: #fff3cd; padding: 20px; border-radius: 5px; margin: 20px 0;">
+            <h4 style="color: #856404; margin-top: 0;">📋 Informations importantes à retenir :</h4>
+            <ul style="color: #856404; margin: 10px 0;">
+              <li style="margin: 8px 0;">✓ Vos quittances de loyer vous seront envoyées automatiquement par email</li>
+              <li style="margin: 8px 0;">✓ En cas de problème technique, contactez-nous rapidement</li>
+              <li style="margin: 8px 0;">✓ Pensez à effectuer les changements d'adresse nécessaires</li>
+              <li style="margin: 8px 0;">✓ L'assurance habitation est obligatoire</li>
+            </ul>
+          </div>
+
+          <div style="background-color: #d4edda; padding: 20px; border-radius: 5px; margin: 20px 0;">
+            <h4 style="color: #155724; margin-top: 0;">📞 Nos coordonnées</h4>
+            <p style="margin: 10px 0; color: #155724;">
+              Notre équipe reste à votre disposition pour toute question ou assistance.<br>
+              N'hésitez pas à nous contacter si vous avez besoin d'aide.
+            </p>
+          </div>
+
+          <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+            <h4 style="color: #17a2b8;">Excellente installation ! 🎉</h4>
+            <p style="color: #7f8c8d; font-size: 12px;">
+              Toute l'équipe de gestion locative<br>
+              vous souhaite de passer d'agréables moments<br>
+              dans votre nouveau chez-vous.
+            </p>
+          </div>
+        </div>
+      `,
+      type: 'BIENVENUE',
+      variables: JSON.stringify([
+        'locataire_nom', 'locataire_prenom', 'bien_adresse', 'bien_ville', 
+        'bien_codePostal', 'date_entree', 'proprietaire_nom'
+      ]),
+      actif: true
+    }
+  ];
+
+  // Créer les templates en une seule transaction
+  const createdTemplates = await prisma.$transaction(
+    defaultTemplates.map(template => 
+      prisma.emailTemplate.create({ data: template })
+    )
+  );
+
+  res.status(201).json({
+    success: true,
+    message: `${createdTemplates.length} templates par défaut créés avec succès`,
+    data: {
+      templatesCreated: createdTemplates.length,
+      templates: createdTemplates.map(t => ({
+        id: t.id,
+        nom: t.nom,
+        type: t.type,
+        actif: t.actif
+      }))
+    }
+  });
+}));
+
 export default router;
