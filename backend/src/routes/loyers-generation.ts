@@ -70,16 +70,14 @@ router.post('/generer', asyncHandler(async (req: AuthenticatedRequest, res) => {
 
   console.log(`🚀 Génération des loyers pour ${mois}/${annee}`);
 
-  // Récupérer les contrats actifs
-  let whereClause: any = {
-    statut: 'ACTIF',
-  };
+  // Récupérer tous les contrats (le filtrage par statut se fait dans estContratActif)
+  let whereClause: any = {};
 
   if (contratIds && contratIds.length > 0) {
     whereClause.id = { in: contratIds };
   }
 
-  const contratsActifs = await prisma.contrat.findMany({
+  const tousLesContrats = await prisma.contrat.findMany({
     where: whereClause,
     include: {
       bien: {
@@ -104,15 +102,15 @@ router.post('/generer', asyncHandler(async (req: AuthenticatedRequest, res) => {
     },
   });
 
-  console.log(`📋 ${contratsActifs.length} contrats trouvés`);
+  console.log(`📋 ${tousLesContrats.length} contrats trouvés`);
 
   console.log(`📋 Liste des contrats trouvés:`);
-  contratsActifs.forEach(contrat => {
+  tousLesContrats.forEach(contrat => {
     console.log(`   - Contrat ${contrat.id}: statut=${contrat.statut}, dateDebut=${contrat.dateDebut}`);
   });
 
   // Filtrer les contrats qui sont actifs pour cette période
-  const contratsAPayer = contratsActifs.filter(contrat => 
+  const contratsAPayer = tousLesContrats.filter(contrat => 
     estContratActif(contrat, mois, annee)
   );
 
@@ -252,7 +250,7 @@ router.post('/generer', asyncHandler(async (req: AuthenticatedRequest, res) => {
         contratsTraites: contratsAGenerer.length,
         erreurs,
         statistiques: {
-          totalContrats: contratsActifs.length,
+          totalContrats: tousLesContrats.length,
           contratsActifs: contratsAPayer.length,
           loyersGeneres: loyersGeneres.length,
           loyersExistants: loyersExistants.length,
