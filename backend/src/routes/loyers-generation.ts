@@ -106,6 +106,11 @@ router.post('/generer', asyncHandler(async (req: AuthenticatedRequest, res) => {
 
   console.log(`📋 ${contratsActifs.length} contrats trouvés`);
 
+  console.log(`📋 Liste des contrats trouvés:`);
+  contratsActifs.forEach(contrat => {
+    console.log(`   - Contrat ${contrat.id}: statut=${contrat.statut}, dateDebut=${contrat.dateDebut}`);
+  });
+
   // Filtrer les contrats qui sont actifs pour cette période
   const contratsAPayer = contratsActifs.filter(contrat => 
     estContratActif(contrat, mois, annee)
