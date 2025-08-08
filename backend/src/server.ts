@@ -30,6 +30,10 @@ import chargesRoutes from './routes/charges.js';
 import garantsRoutes from './routes/garants.js';
 import fiscaliteRoutes from './routes/fiscalite.js';
 import documentsRoutes from './routes/documents.js';
+import schedulerRoutes from './routes/scheduler.js';
+
+// Import scheduler
+import { taskScheduler } from './services/scheduler.js';
 
 const app = express();
 const PORT = parseInt(process.env.PORT || '7000', 10);
@@ -162,6 +166,7 @@ app.use('/api/charges', authMiddleware, chargesRoutes);
 app.use('/api/garants', authMiddleware, garantsRoutes);
 app.use('/api/fiscalite', authMiddleware, fiscaliteRoutes);
 app.use('/api/documents', authMiddleware, documentsRoutes);
+app.use('/api/scheduler', authMiddleware, schedulerRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {
@@ -177,12 +182,14 @@ app.use(errorHandler);
 // Graceful shutdown
 process.on('SIGINT', async () => {
   logger.info('Arrêt du serveur en cours...');
+  taskScheduler.stop();
   await prisma.$disconnect();
   process.exit(0);
 });
 
 process.on('SIGTERM', async () => {
   logger.info('Signal SIGTERM reçu, arrêt du serveur...');
+  taskScheduler.stop();
   await prisma.$disconnect();
   process.exit(0);
 });
@@ -194,6 +201,14 @@ app.listen(PORT, '0.0.0.0', () => {
   logger.info(`📊 Dashboard (Réseau): http://192.168.1.51:${PORT}/health`);
   logger.info(`📊 Dashboard (Entreprise): http://10.81.234.10:${PORT}/health`);
   logger.info(`🗄️  Base de données: PostgreSQL avec Prisma ORM`);
+  
+  // Démarrer le planificateur de tâches
+  try {
+    taskScheduler.start();
+    logger.info(`⏰ Planificateur de tâches démarré`);
+  } catch (error) {
+    logger.error('Erreur lors du démarrage du planificateur:', error);
+  }
 });
 
 export default app;
