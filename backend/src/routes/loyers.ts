@@ -969,4 +969,169 @@ router.post('/verifier-generation-automatique', asyncHandler(async (req: Authent
   }
 }));
 
+// @route   POST /api/loyers/generer-loyers-manquants-public
+// @desc    Generate missing rent for contracts (PUBLIC - temporary for testing)
+// @access  Public
+router.post('/generer-loyers-manquants-public', asyncHandler(async (req, res) => {
+  const currentDate = new Date();
+  const currentMonth = currentDate.getMonth() + 1;
+  const currentYear = currentDate.getFullYear();
+  const currentDay = currentDate.getDate();
+
+  const results = {
+    loyersCrees: [],
+    contratsTraites: 0,
+    contratsActifsTotal: 0,
+    erreurs: []
+  };
+
+  await prisma.$transaction(async (tx) => {
+    // Récupérer tous les contrats actifs
+    const contratsActifs = await tx.contrat.findMany({
+      where: {
+        statut: 'ACTIF',
+        dateDebut: {
+          lte: currentDate
+        },
+        OR: [
+          { dateFin: null },
+          { dateFin: { gte: currentDate } }
+        ]
+      },
+      include: {
+        bien: {
+          select: {
+            id: true,
+            adresse: true,
+            ville: true
+          }
+        },
+        locataires: {
+          include: {
+            locataire: {
+              select: {
+                id: true,
+                nom: true,
+                prenom: true,
+                email: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    results.contratsActifsTotal = contratsActifs.length;
+
+    // Fonction pour déterminer les périodes à vérifier
+    const getPeriodsToCheck = (contrat: any) => {
+      const periods = [];
+      const contratDebut = new Date(contrat.dateDebut);
+      const contratFin = contrat.dateFin ? new Date(contrat.dateFin) : null;
+
+      // Commencer à partir de la date de début du contrat
+      let checkDate = new Date(contratDebut.getFullYear(), contratDebut.getMonth(), contrat.jourPaiement);
+      
+      // Si la date de début est après le jour de paiement du mois, commencer le mois suivant
+      if (contratDebut.getDate() > contrat.jourPaiement) {
+        checkDate.setMonth(checkDate.getMonth() + 1);
+      }
+
+      // Vérifier jusqu'au mois courant (inclus si le jour de paiement est passé)
+      while (checkDate <= currentDate) {
+        const mois = checkDate.getMonth() + 1;
+        const annee = checkDate.getFullYear();
+        
+        // Ne pas dépasser la date de fin du contrat
+        if (contratFin && checkDate > contratFin) {
+          break;
+        }
+
+        // Vérifier si nous devons créer ce loyer
+        const shouldCreate = checkDate < currentDate || 
+          (checkDate.getMonth() === currentDate.getMonth() && 
+           checkDate.getFullYear() === currentDate.getFullYear() && 
+           currentDay >= contrat.jourPaiement);
+
+        if (shouldCreate) {
+          periods.push({ mois, annee, dateEcheance: new Date(checkDate) });
+        }
+
+        // Passer au mois suivant
+        checkDate.setMonth(checkDate.getMonth() + 1);
+      }
+
+      return periods;
+    };
+
+    for (const contrat of contratsActifs) {
+      try {
+        results.contratsTraites++;
+
+        const periodsToCheck = getPeriodsToCheck(contrat);
+
+        for (const period of periodsToCheck) {
+          // Vérifier si un loyer existe déjà pour cette période
+          const loyerExiste = await tx.loyer.findFirst({
+            where: {
+              contratId: contrat.id,
+              mois: period.mois,
+              annee: period.annee
+            }
+          });
+
+          if (!loyerExiste) {
+            // Déterminer le statut initial selon la date d'échéance
+            let statutInitial = 'EN_ATTENTE';
+            if (period.dateEcheance < currentDate) {
+              statutInitial = 'RETARD';
+            }
+
+            // Créer le loyer manquant
+            const nouveauLoyer = await tx.loyer.create({
+              data: {
+                contratId: contrat.id,
+                mois: period.mois,
+                annee: period.annee,
+                montantDu: contrat.loyer + contrat.chargesMensuelles,
+                montantPaye: 0,
+                dateEcheance: period.dateEcheance,
+                statut: statutInitial,
+                commentaires: `Loyer généré automatiquement (test public) le ${currentDate.toISOString()}`
+              }
+            });
+
+            results.loyersCrees.push({
+              loyerId: nouveauLoyer.id,
+              contratId: contrat.id,
+              mois: period.mois,
+              annee: period.annee,
+              montantDu: nouveauLoyer.montantDu,
+              dateEcheance: period.dateEcheance,
+              statut: statutInitial,
+              adresse: contrat.bien.adresse,
+              locataires: contrat.locataires.map(cl => 
+                `${cl.locataire.prenom} ${cl.locataire.nom}`
+              ).join(', ')
+            });
+          }
+        }
+      } catch (error) {
+        results.erreurs.push({
+          contratId: contrat.id,
+          adresse: contrat.bien?.adresse || 'Adresse inconnue',
+          erreur: error instanceof Error ? error.message : 'Erreur inconnue'
+        });
+      }
+    }
+  });
+
+  res.json({
+    success: true,
+    message: `TEST - Génération automatique terminée. ${results.loyersCrees.length} loyers créés sur ${results.contratsActifsTotal} contrats actifs.`,
+    data: results,
+    note: "⚠️ Endpoint de test public - à supprimer après validation"
+  });
+}));
+
 export default router;
