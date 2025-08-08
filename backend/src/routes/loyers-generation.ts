@@ -36,18 +36,27 @@ function estContratActif(contrat: any, mois: number, annee: number): boolean {
   const periodeLoyer = new Date(annee, mois - 1, 1);
   const finPeriodeLoyer = new Date(annee, mois - 1 + 1, 0); // Dernier jour du mois
   
+  console.log(`🔍 Vérification contrat ${contrat.id}:`);
+  console.log(`   Statut: ${contrat.statut}`);
+  console.log(`   Date début: ${dateDebut.toISOString()}`);
+  console.log(`   Date fin: ${contrat.dateFin || 'null'}`);
+  console.log(`   Période demandée: ${periodeLoyer.toISOString()} - ${finPeriodeLoyer.toISOString()}`);
+  
   // Le contrat doit être actif (condition principale avec reconduction tacite)
   if (contrat.statut !== 'ACTIF') {
+    console.log(`   ❌ Contrat non actif: ${contrat.statut}`);
     return false;
   }
   
   // Le contrat doit avoir commencé avant ou pendant le mois demandé
   if (dateDebut > finPeriodeLoyer) {
+    console.log(`   ❌ Contrat pas encore commencé: ${dateDebut.toISOString()} > ${finPeriodeLoyer.toISOString()}`);
     return false;
   }
   
   // Avec la reconduction tacite, on peut générer les loyers pour tous les mois
   // tant que le contrat est actif et a commencé
+  console.log(`   ✅ Contrat valide pour génération`);
   
   return true;
 }
