@@ -31,22 +31,36 @@ function calculerDateEcheance(mois: number, annee: number, jourPaiement: number)
 
 // Fonction utilitaire pour vérifier si un contrat est actif pour une période donnée
 function estContratActif(contrat: any, mois: number, annee: number): boolean {
+  const currentDate = new Date();
   const dateDebut = new Date(contrat.dateDebut);
-  const dateFin = contrat.dateFin ? new Date(contrat.dateFin) : null;
   const periodeLoyer = new Date(annee, mois - 1, 1);
+  const finPeriodeLoyer = new Date(annee, mois - 1 + 1, 0); // Dernier jour du mois
   
-  // Le contrat doit avoir commencé avant ou pendant la période
-  if (dateDebut > periodeLoyer) {
+  // Le contrat doit être actif (condition principale avec reconduction tacite)
+  if (contrat.statut !== 'ACTIF') {
     return false;
   }
   
-  // Si le contrat a une date de fin, elle doit être après la période
-  if (dateFin && dateFin < periodeLoyer) {
+  // Le contrat doit avoir commencé avant ou pendant le mois demandé
+  if (dateDebut > finPeriodeLoyer) {
     return false;
   }
   
-  // Le contrat doit être actif
-  return contrat.statut === 'ACTIF';
+  // Pour la règle "créer dès le 1er du mois" : 
+  // Si on demande août et nous sommes en août ou après, on peut créer
+  // Si on demande septembre et nous sommes en septembre ou après, on peut créer
+  const currentMonth = currentDate.getMonth() + 1;
+  const currentYear = currentDate.getFullYear();
+  
+  // On peut créer le loyer si nous sommes dans le mois demandé ou après
+  const canCreateRent = (annee < currentYear) || 
+                       (annee === currentYear && mois <= currentMonth);
+  
+  if (!canCreateRent) {
+    return false;
+  }
+  
+  return true;
 }
 
 // @route   POST /api/loyers/generer
@@ -274,6 +288,130 @@ router.post('/generer-mois-suivant', asyncHandler(async (req: AuthenticatedReque
   }, res);
 
   return result;
+}));
+
+// @route   GET /api/loyers/debug-contrats
+// @desc    Debug contracts for a specific period
+// @access  Private
+router.get('/debug-contrats', asyncHandler(async (req: AuthenticatedRequest, res) => {
+  const { mois = 8, annee = 2025 } = req.query;
+  
+  const moisNum = parseInt(mois as string);
+  const anneeNum = parseInt(annee as string);
+  
+  // Récupérer TOUS les contrats avec détails complets
+  const tousLesContrats = await prisma.contrat.findMany({
+    include: {
+      bien: {
+        select: {
+          id: true,
+          adresse: true,
+          ville: true,
+          codePostal: true,
+        },
+      },
+      locataires: {
+        include: {
+          locataire: {
+            select: {
+              nom: true,
+              prenom: true,
+              email: true,
+            },
+          },
+        },
+      },
+    },
+  });
+  
+  // Vérifier les loyers existants pour cette période
+  const loyersExistants = await prisma.loyer.findMany({
+    where: {
+      mois: moisNum,
+      annee: anneeNum,
+    },
+    include: {
+      contrat: {
+        include: {
+          bien: true,
+          locataires: {
+            include: {
+              locataire: true
+            }
+          }
+        }
+      }
+    }
+  });
+  
+  const currentDate = new Date();
+  
+  // Analyser chaque contrat
+  const analyse = tousLesContrats.map(contrat => {
+    const dateDebut = new Date(contrat.dateDebut);
+    const dateFin = contrat.dateFin ? new Date(contrat.dateFin) : null;
+    const periodeLoyer = new Date(anneeNum, moisNum - 1, 1);
+    
+    const loyerExiste = loyersExistants.find(l => l.contratId === contrat.id);
+    
+    const diagnostic = {
+      contratId: contrat.id,
+      adresse: `${contrat.bien?.adresse}, ${contrat.bien?.ville}`,
+      locataires: contrat.locataires?.map(cl => `${cl.locataire.prenom} ${cl.locataire.nom}`).join(', '),
+      statut: contrat.statut,
+      dateDebut: dateDebut.toISOString(),
+      dateFin: dateFin?.toISOString() || null,
+      jourPaiement: contrat.jourPaiement,
+      loyer: contrat.loyer,
+      charges: contrat.chargesMensuelles,
+      loyerExiste: !!loyerExiste,
+      loyerExisteDetails: loyerExiste ? {
+        id: loyerExiste.id,
+        montantDu: loyerExiste.montantDu,
+        statut: loyerExiste.statut
+      } : null,
+      diagnostics: {
+        estActif: contrat.statut === 'ACTIF',
+        aCommence: dateDebut <= currentDate,
+        pasFini: !dateFin || dateFin >= currentDate,
+        periodeValide: periodeLoyer <= currentDate,
+        dateDebutOk: dateDebut <= new Date(anneeNum, moisNum - 1, 31, 23, 59, 59),
+        dateFinOk: !dateFin || dateFin >= periodeLoyer,
+      }
+    };
+    
+    const estValide = diagnostic.diagnostics.estActif && 
+                     diagnostic.diagnostics.aCommence && 
+                     diagnostic.diagnostics.pasFini && 
+                     diagnostic.diagnostics.periodeValide && 
+                     diagnostic.diagnostics.dateDebutOk && 
+                     diagnostic.diagnostics.dateFinOk;
+    
+    return {
+      ...diagnostic,
+      devraitAvoirLoyer: estValide && !diagnostic.loyerExiste,
+      estValide
+    };
+  });
+  
+  res.json({
+    success: true,
+    data: {
+      periode: `${moisNum}/${anneeNum}`,
+      dateActuelle: currentDate.toISOString(),
+      totalContrats: tousLesContrats.length,
+      contratsActifs: analyse.filter(c => c.statut === 'ACTIF').length,
+      contratsValides: analyse.filter(c => c.estValide).length,
+      loyersExistants: loyersExistants.length,
+      contratsSansLoyer: analyse.filter(c => c.devraitAvoirLoyer).length,
+      analyse: analyse.sort((a, b) => {
+        // Mettre les contrats sans loyer en premier
+        if (a.devraitAvoirLoyer && !b.devraitAvoirLoyer) return -1;
+        if (!a.devraitAvoirLoyer && b.devraitAvoirLoyer) return 1;
+        return a.adresse.localeCompare(b.adresse);
+      })
+    }
+  });
 }));
 
 // @route   GET /api/loyers/preview-generation
