@@ -36,6 +36,12 @@ export interface Loyer {
     statut: string;
     dateGeneration: string;
   }[];
+  rappels?: {
+    id: string;
+    type: string;
+    envoye: boolean;
+    dateEnvoi: string;
+  }[];
   _count?: {
     paiements: number;
     quittances: number;
@@ -82,21 +88,18 @@ interface LoyersParams {
   page?: number;
   limit?: number;
   search?: string;
-  statut?: 'EN_ATTENTE' | 'PARTIEL' | 'PAYE' | 'RETARD';
+  statut?: string; // Peut accepter plusieurs statuts séparés par des virgules
   mois?: number;
   annee?: number;
   contratId?: string;
 }
 
 export const loyersService = {
-  async getAll(params?: LoyersParams): Promise<PaginatedResponse<Loyer>> {
+  async getAll(params?: LoyersParams): Promise<{loyers: Loyer[], pagination: any}> {
     const { data } = await api.get<ApiResponse<{loyers: Loyer[], pagination: any}>>('/loyers', {
       params,
     });
-    return {
-      data: data.data.loyers,
-      pagination: data.data.pagination
-    };
+    return data.data;
   },
 
   async getById(id: string): Promise<Loyer> {

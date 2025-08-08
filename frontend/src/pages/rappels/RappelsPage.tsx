@@ -26,6 +26,7 @@ import Modal from '@/components/ui/Modal';
 import Table from '@/components/ui/Table';
 import Badge from '@/components/ui/Badge';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import CreateRappelForm from '@/components/forms/CreateRappelForm';
 
 interface StatsCardProps {
   title: string;
@@ -170,6 +171,10 @@ const RappelsPage: React.FC = () => {
       toast.error(error?.response?.data?.error?.message || 'Erreur lors de la création');
     },
   });
+
+  const handleCreateRappel = (data: any) => {
+    createRappelMutation.mutate(data);
+  };
 
   const rappels = rappelsData?.rappels || [];
   const pagination = rappelsData?.pagination;
@@ -614,49 +619,13 @@ const RappelsPage: React.FC = () => {
         isOpen={createModalOpen}
         onClose={() => setCreateModalOpen(false)}
         title="Créer un nouveau rappel"
-        size="lg"
+        size="2xl"
       >
-        <div className="space-y-4">
-          <div className="bg-blue-50 p-4 rounded-lg">
-            <div className="flex items-start">
-              <Bell className="h-5 w-5 text-blue-500 mt-0.5 mr-3" />
-              <div>
-                <h4 className="font-medium text-blue-900">Création de rappel</h4>
-                <p className="text-sm text-blue-700 mt-1">
-                  Cette fonctionnalité permet de créer plusieurs rappels pour le même loyer si nécessaire.
-                  Vous pouvez créer des rappels de relance même si un rappel existe déjà.
-                </p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-yellow-50 p-4 rounded-lg">
-            <div className="flex items-start">
-              <AlertTriangle className="h-5 w-5 text-yellow-500 mt-0.5 mr-3" />
-              <div>
-                <h4 className="font-medium text-yellow-900">Formulaire en développement</h4>
-                <p className="text-sm text-yellow-700 mt-1">
-                  Le formulaire complet de création de rappels est en cours de développement.
-                  Pour l'instant, vous pouvez créer des rappels depuis les pages de détails des loyers.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex justify-end space-x-3 pt-4 border-t">
-            <Button variant="outline" onClick={() => setCreateModalOpen(false)}>
-              Fermer
-            </Button>
-            <Button 
-              onClick={() => {
-                setCreateModalOpen(false);
-                toast.info('Rendez-vous dans la page des loyers pour créer un rappel pour un loyer spécifique');
-              }}
-            >
-              Aller aux loyers
-            </Button>
-          </div>
-        </div>
+        <CreateRappelForm
+          onSubmit={handleCreateRappel}
+          onCancel={() => setCreateModalOpen(false)}
+          loading={createRappelMutation.isLoading}
+        />
       </Modal>
     </div>
   );
