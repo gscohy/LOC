@@ -69,6 +69,8 @@ router.post('/generer', asyncHandler(async (req: AuthenticatedRequest, res) => {
   const { mois, annee, contratIds, forceRegeneration } = validatedData;
 
   console.log(`🚀 Génération des loyers pour ${mois}/${annee}`);
+  console.log(`🔧 VERSION DEBUG ACTIVE - Récupération de TOUS les contrats`);
+  console.log(`📅 Date actuelle: ${new Date().toISOString()}`);
 
   // Récupérer tous les contrats (le filtrage par statut se fait dans estContratActif)
   let whereClause: any = {};
