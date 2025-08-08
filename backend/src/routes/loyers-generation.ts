@@ -7,6 +7,32 @@ import { AuthenticatedRequest } from '../middleware/auth.js';
 const prisma = new PrismaClient();
 const router = express.Router();
 
+// Fonction utilitaire pour calculer le statut d'un loyer
+function calculateLoyerStatut(
+  montantDu: number, 
+  montantPaye: number, 
+  mois: number, 
+  annee: number, 
+  jourPaiement: number
+): string {
+  // Si complètement payé
+  if (montantPaye >= montantDu) {
+    return 'PAYE';
+  }
+  
+  // Calculer la date limite de paiement pour ce mois
+  const dateLimitePaiement = new Date(annee, mois - 1, jourPaiement);
+  const maintenant = new Date();
+  
+  // Si la date limite est dépassée
+  if (maintenant > dateLimitePaiement) {
+    return montantPaye > 0 ? 'PARTIEL' : 'RETARD';
+  }
+  
+  // Sinon, c'est en attente (même si partiellement payé)
+  return montantPaye > 0 ? 'PARTIEL' : 'EN_ATTENTE';
+}
+
 // Validation schemas
 const generationSchema = z.object({
   mois: z.number().int().min(1).max(12, 'Le mois doit être entre 1 et 12'),
@@ -243,6 +269,35 @@ router.post('/generer', asyncHandler(async (req: AuthenticatedRequest, res) => {
     });
 
     console.log(`🎉 Génération terminée: ${loyersGeneres.length} loyers créés`);
+
+    // Recalculer les statuts pour tous les loyers générés
+    const loyersRecalcules = [];
+    for (const loyer of loyersGeneres) {
+      const contrat = await prisma.contrat.findUnique({
+        where: { id: loyer.contratId },
+        select: { jourPaiement: true }
+      });
+
+      if (contrat) {
+        const nouveauStatut = calculateLoyerStatut(
+          loyer.montantDu,
+          loyer.montantPaye,
+          loyer.mois,
+          loyer.annee,
+          contrat.jourPaiement
+        );
+
+        if (nouveauStatut !== loyer.statut) {
+          await prisma.loyer.update({
+            where: { id: loyer.id },
+            data: { statut: nouveauStatut }
+          });
+          loyersRecalcules.push({ id: loyer.id, ancienStatut: loyer.statut, nouveauStatut });
+        }
+      }
+    }
+
+    console.log(`🔄 ${loyersRecalcules.length} statuts mis à jour après génération`);
 
     res.status(201).json({
       success: true,
