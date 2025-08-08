@@ -46,19 +46,8 @@ function estContratActif(contrat: any, mois: number, annee: number): boolean {
     return false;
   }
   
-  // Pour la règle "créer dès le 1er du mois" : 
-  // Si on demande août et nous sommes en août ou après, on peut créer
-  // Si on demande septembre et nous sommes en septembre ou après, on peut créer
-  const currentMonth = currentDate.getMonth() + 1;
-  const currentYear = currentDate.getFullYear();
-  
-  // On peut créer le loyer si nous sommes dans le mois demandé ou après
-  const canCreateRent = (annee < currentYear) || 
-                       (annee === currentYear && mois <= currentMonth);
-  
-  if (!canCreateRent) {
-    return false;
-  }
+  // Avec la reconduction tacite, on peut générer les loyers pour tous les mois
+  // tant que le contrat est actif et a commencé
   
   return true;
 }
