@@ -161,7 +161,7 @@ const LocatairesPage: React.FC = () => {
             Locataires
           </h1>
           <p className="mt-1 text-sm text-gray-600">
-            Gérez vos locataires et leurs informations
+            Gérez vos locataires et leurs informations (actifs par défaut)
           </p>
         </div>
         <Button>
