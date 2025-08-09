@@ -73,7 +73,9 @@ const corsOptions = {
   origin: process.env.NODE_ENV === 'production' 
     ? [
         'https://loc-frontend.onrender.com',
-        /\.onrender\.com$/  // Accepter tous les sous-domaines Render
+        'https://loc-frontend-production.up.railway.app',
+        /\.onrender\.com$/,  // Accepter tous les sous-domaines Render
+        /\.up\.railway\.app$/  // Accepter tous les domaines Railway
       ]
     : [
         'http://localhost:5173',
