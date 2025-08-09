@@ -30,6 +30,9 @@ const LocatairesPage: React.FC = () => {
   const navigate = useNavigate();
   const limit = 10;
 
+  // Debug: vérifier que le composant se charge avec le filtre
+  console.log('🔍 Page locataires chargée avec filtre:', statusFilter);
+
   const { data: locatairesData, isLoading } = useQuery(
     ['locataires', { page, limit, search, statut: statusFilter }],
     () => locatairesService.getAll({ 
@@ -158,10 +161,11 @@ const LocatairesPage: React.FC = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-gray-900">
-            Locataires
+            Locataires {statusFilter === 'ACTIF' ? '(Actifs)' : '(Tous)'}
           </h1>
           <p className="mt-1 text-sm text-gray-600">
-            Gérez vos locataires et leurs informations (actifs par défaut)
+            Gérez vos locataires et leurs informations 
+            {statusFilter === 'ACTIF' && <span className="text-green-600 font-medium"> - Filtrés par contrats actifs</span>}
           </p>
         </div>
         <Button>
