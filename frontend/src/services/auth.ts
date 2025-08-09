@@ -5,6 +5,16 @@ export const authService = {
   async login(credentials: LoginForm): Promise<AuthResponse> {
     const { data } = await api.post<ApiResponse<AuthResponse>>('/auth/login', credentials);
     setAuthToken(data.data.token);
+    
+    // Déclencher le recalcul des statuts de loyers après connexion
+    try {
+      await api.post('/loyers/recalculate-statuts');
+      console.log('✅ Statuts des loyers recalculés après connexion');
+    } catch (error) {
+      console.warn('⚠️ Erreur lors du recalcul des statuts:', error);
+      // Ne pas faire échouer la connexion si le recalcul échoue
+    }
+    
     return data.data;
   },
 
