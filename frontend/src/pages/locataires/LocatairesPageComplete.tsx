@@ -263,6 +263,38 @@ const LocatairesPageComplete: React.FC = () => {
         )}
       </div>
 
+      {/* Pagination */}
+      {locatairesData?.pagination && locatairesData.pagination.pages > 1 && (
+        <div className="flex justify-between items-center mt-6">
+          <div className="text-sm text-gray-700">
+            Affichage de {((currentPage - 1) * pageSize) + 1} à{' '}
+            {Math.min(currentPage * pageSize, locatairesData.pagination.total)} sur{' '}
+            {locatairesData.pagination.total} résultats
+          </div>
+          <div className="flex space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(currentPage - 1)}
+              disabled={currentPage <= 1}
+            >
+              Précédent
+            </Button>
+            <span className="px-3 py-2 text-sm text-gray-600">
+              Page {currentPage} sur {locatairesData.pagination.pages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(currentPage + 1)}
+              disabled={currentPage >= locatairesData.pagination.pages}
+            >
+              Suivant
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Create Modal */}
       <Modal
         isOpen={isCreateModalOpen}
