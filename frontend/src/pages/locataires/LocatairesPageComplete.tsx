@@ -15,6 +15,7 @@ import LocataireForm from '@/components/forms/LocataireForm';
 const LocatairesPageComplete: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [statusFilter, setStatusFilter] = useState<string>('ACTIF'); // Par défaut : locataires actifs
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingLocataire, setEditingLocataire] = useState<Locataire | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -29,11 +30,12 @@ const LocatairesPageComplete: React.FC = () => {
     isLoading,
     error,
   } = useQuery(
-    ['locataires', currentPage, searchTerm],
+    ['locataires', currentPage, searchTerm, statusFilter],
     () => locatairesService.getAll({
       page: currentPage,
       limit: pageSize,
       search: searchTerm || undefined,
+      statut: statusFilter as 'ACTIF' | 'INACTIF' | undefined,
     }),
     {
       keepPreviousData: true,
@@ -228,6 +230,14 @@ const LocatairesPageComplete: React.FC = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="border border-gray-300 rounded-md px-3 py-2 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+        >
+          <option value="ACTIF">Locataires actifs</option>
+          <option value="">Tous les locataires</option>
+        </select>
       </div>
 
       <div className="card">
