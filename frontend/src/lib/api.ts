@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 const getBaseURL = () => {
   // Priorité à la variable d'environnement VITE_API_URL
   if (import.meta.env.VITE_API_URL) {
-    return import.meta.env.VITE_API_URL;
+    return import.meta.env.VITE_API_URL + '/api';
   }
   
   // Production: utiliser l'URL du backend Railway par défaut
