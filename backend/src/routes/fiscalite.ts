@@ -6,41 +6,6 @@ import PDFDocument from 'pdfkit';
 
 const router = express.Router();
 
-// Fonction partagée pour calculer les occurrences de charges récurrentes (identique à charges.ts)
-function generateRecurringCharges(charge: any, year: number) {
-  if (charge.type === 'PONCTUELLE') return [];
-  
-  const occurrences = [];
-  const startDate = charge.dateDebut ? new Date(charge.dateDebut) : new Date(charge.date);
-  const endDate = charge.dateFin ? new Date(charge.dateFin) : new Date(year, 11, 31);
-  const yearStart = new Date(year, 0, 1);
-  const yearEnd = new Date(year, 11, 31);
-  
-  let intervalMonths = 0;
-  switch (charge.type) {
-    case 'MENSUELLE': intervalMonths = 1; break;
-    case 'TRIMESTRIELLE': intervalMonths = 3; break;
-    case 'SEMESTRIELLE': intervalMonths = 6; break;
-    case 'ANNUELLE': intervalMonths = 12; break;
-  }
-  
-  if (intervalMonths === 0) return [];
-  
-  let currentDate = new Date(Math.max(startDate.getTime(), yearStart.getTime()));
-  
-  while (currentDate <= endDate && currentDate <= yearEnd) {
-    if (currentDate >= yearStart) {
-      occurrences.push({
-        ...charge,
-        date: new Date(currentDate),
-        montantProjecte: charge.montant
-      });
-    }
-    currentDate.setMonth(currentDate.getMonth() + intervalMonths);
-  }
-  
-  return occurrences;
-}
 
 // Schémas de validation
 const fiscalDataSchema = z.object({
@@ -59,10 +24,12 @@ router.get('/data', async (req, res) => {
     const annee = parseInt(req.query.annee as string) || new Date().getFullYear();
     const proprietaireId = req.query.proprietaireId as string;
 
-    // Construire les filtres
-    const whereClause: any = { annee };
+    logger.info(`Récupération données fiscales pour année ${annee}`);
+
+    // Construire les filtres pour les loyers
+    const loyersWhere: any = { annee };
     if (proprietaireId) {
-      whereClause.contrat = {
+      loyersWhere.contrat = {
         bien: {
           proprietaires: {
             some: { proprietaireId }
@@ -73,7 +40,7 @@ router.get('/data', async (req, res) => {
 
     // Récupérer les loyers
     const loyers = await prisma.loyer.findMany({
-      where: whereClause,
+      where: loyersWhere,
       include: {
         contrat: {
           include: {
@@ -91,81 +58,36 @@ router.get('/data', async (req, res) => {
       }
     });
 
-    // Récupérer les charges (ponctuelles + récurrentes)
-    const chargesWherePonctuelles: any = {
-      type: 'PONCTUELLE',
+    // Récupérer toutes les charges de l'année (simplification)
+    const chargesWhere: any = {
       date: {
         gte: new Date(annee, 0, 1),
         lte: new Date(annee, 11, 31)
       }
     };
 
-    const chargesWhereRecurrentes: any = {
-      type: { not: 'PONCTUELLE' },
-      OR: [
-        { dateFin: null },
-        { dateFin: { gte: new Date(annee, 0, 1) } },
-      ],
-      AND: [
-        {
-          OR: [
-            { dateDebut: null },
-            { dateDebut: { lte: new Date(annee, 11, 31) } },
-          ]
-        }
-      ]
-    };
-
     if (proprietaireId) {
-      const proprietaireFilter = {
-        bien: {
-          proprietaires: {
-            some: { proprietaireId }
-          }
+      chargesWhere.bien = {
+        proprietaires: {
+          some: { proprietaireId }
         }
       };
-      chargesWherePonctuelles.bien = proprietaireFilter.bien;
-      chargesWhereRecurrentes.bien = proprietaireFilter.bien;
     }
 
-    const [chargesPonctuelles, chargesRecurrentes] = await Promise.all([
-      prisma.charge.findMany({
-        where: chargesWherePonctuelles,
-        include: {
-          bien: {
-            include: {
-              proprietaires: {
-                include: {
-                  proprietaire: true
-                }
+    const charges = await prisma.charge.findMany({
+      where: chargesWhere,
+      include: {
+        bien: {
+          include: {
+            proprietaires: {
+              include: {
+                proprietaire: true
               }
             }
           }
         }
-      }),
-      prisma.charge.findMany({
-        where: chargesWhereRecurrentes,
-        include: {
-          bien: {
-            include: {
-              proprietaires: {
-                include: {
-                  proprietaire: true
-                }
-              }
-            }
-          }
-        }
-      })
-    ]);
-
-    // Générer les occurrences des charges récurrentes pour l'année
-    const chargesRecurrentesProjectees = chargesRecurrentes.flatMap(charge => 
-      generateRecurringCharges(charge, annee)
-    );
-
-    // Combiner toutes les charges
-    const charges = [...chargesPonctuelles, ...chargesRecurrentesProjectees];
+      }
+    });
 
     // Calculer les revenus
     const totalLoyers = loyers.reduce((sum, loyer) => sum + (loyer.montantPaye || 0), 0);
@@ -241,9 +163,11 @@ router.get('/data', async (req, res) => {
     logger.info(`Données fiscales calculées pour l'année ${annee}`);
   } catch (error) {
     logger.error('Erreur lors du calcul des données fiscales:', error);
+    console.error('Détail erreur fiscalité/data:', error);
     res.status(500).json({
       success: false,
-      error: 'Erreur serveur lors du calcul des données fiscales'
+      error: 'Erreur serveur lors du calcul des données fiscales',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
@@ -253,15 +177,97 @@ router.post('/declaration-2044', async (req, res) => {
   try {
     const { annee, proprietaireId } = declaration2044Schema.parse(req.body);
 
-    // Récupérer les données fiscales
-    const fiscalDataResponse = await fetch(`${req.protocol}://${req.get('host')}/api/fiscalite/data?annee=${annee}${proprietaireId ? `&proprietaireId=${proprietaireId}` : ''}`, {
-      headers: {
-        'Authorization': req.headers.authorization || ''
+    // Calculer les données fiscales directement
+    // Construction des filtres pour les loyers
+    const loyersWhere: any = { annee };
+    if (proprietaireId) {
+      loyersWhere.contrat = {
+        bien: {
+          proprietaires: {
+            some: { proprietaireId }
+          }
+        }
+      };
+    }
+
+    // Récupérer les loyers
+    const loyers = await prisma.loyer.findMany({
+      where: loyersWhere,
+      include: {
+        contrat: {
+          include: {
+            bien: {
+              include: {
+                proprietaires: {
+                  include: {
+                    proprietaire: true
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     });
-    
-    const fiscalDataResult = await fiscalDataResponse.json();
-    const fiscalData = fiscalDataResult.data;
+
+    // Construction des filtres pour les charges
+    const chargesWhere: any = {
+      date: {
+        gte: new Date(annee, 0, 1),
+        lte: new Date(annee, 11, 31)
+      }
+    };
+
+    if (proprietaireId) {
+      chargesWhere.bien = {
+        proprietaires: {
+          some: { proprietaireId }
+        }
+      };
+    }
+
+    const charges = await prisma.charge.findMany({
+      where: chargesWhere,
+      include: {
+        bien: {
+          include: {
+            proprietaires: {
+              include: {
+                proprietaire: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    // Calcul des totaux
+    const totalLoyers = loyers.reduce((sum, loyer) => sum + (loyer.montantPaye || 0), 0);
+    const totalCharges = charges.reduce((sum, charge) => sum + charge.montant, 0);
+    const resultatFoncier = totalLoyers - totalCharges;
+
+    const fiscalData = {
+      annee,
+      revenus: {
+        loyers: totalLoyers,
+        autresRevenus: 0,
+        total: totalLoyers
+      },
+      charges: {
+        travaux: charges.filter(c => c.categorie === 'TRAVAUX' || c.categorie === 'ENTRETIEN').reduce((sum, c) => sum + c.montant, 0),
+        interetsEmprunt: charges.filter(c => c.categorie === 'CREDIT_IMMO').reduce((sum, c) => sum + c.montant, 0),
+        fraisGestion: charges.filter(c => c.categorie === 'GESTION' || c.categorie === 'SYNDIC').reduce((sum, c) => sum + c.montant, 0),
+        assurances: charges.filter(c => c.categorie === 'ASSURANCE').reduce((sum, c) => sum + c.montant, 0),
+        taxeFonciere: charges.filter(c => c.categorie === 'TAXE_FONCIERE').reduce((sum, c) => sum + c.montant, 0),
+        autres: charges.filter(c => !['TRAVAUX', 'ENTRETIEN', 'CREDIT_IMMO', 'GESTION', 'SYNDIC', 'ASSURANCE', 'TAXE_FONCIERE'].includes(c.categorie)).reduce((sum, c) => sum + c.montant, 0),
+        total: totalCharges
+      },
+      resultat: {
+        benefice: Math.max(0, resultatFoncier),
+        deficit: Math.max(0, -resultatFoncier),
+        netFoncier: resultatFoncier
+      }
+    };
 
     // Récupérer les biens concernés
     const whereClause: any = {};
