@@ -9,9 +9,9 @@ const getBaseURL = () => {
     return import.meta.env.VITE_API_URL;
   }
   
-  // Production: utiliser l'URL du backend Render par défaut
+  // Production: utiliser l'URL du backend Railway par défaut
   if (import.meta.env.PROD || import.meta.env.NODE_ENV === 'production') {
-    return 'https://loc-backend.onrender.com/api';
+    return 'https://loc-backend-production.up.railway.app/api';
   }
   
   // Development: localhost
