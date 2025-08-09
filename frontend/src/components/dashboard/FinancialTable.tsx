@@ -365,13 +365,19 @@ const FinancialTable: React.FC<FinancialTableProps> = ({ year = new Date().getFu
             <div>
               <span className="text-gray-600">Total Revenus: </span>
               <span className="font-semibold text-green-600">
-                {formatCurrency(finalTableData.reduce((sum, row) => sum + Math.max(0, row.total), 0))}
+                {formatCurrency(finalTableData.reduce((sum, row) => {
+                  // Calculer les revenus bruts (somme des loyers de tous les mois)
+                  return sum + Object.values(row.mois).reduce((monthSum, month) => monthSum + month.loyer, 0);
+                }, 0))}
               </span>
             </div>
             <div>
               <span className="text-gray-600">Total Charges: </span>
               <span className="font-semibold text-red-600">
-                {formatCurrency(Math.abs(finalTableData.reduce((sum, row) => sum + Math.min(0, row.total), 0)))}
+                {formatCurrency(finalTableData.reduce((sum, row) => {
+                  // Calculer les charges brutes (somme des charges de tous les mois)
+                  return sum + Object.values(row.mois).reduce((monthSum, month) => monthSum + month.charges, 0);
+                }, 0))}
               </span>
             </div>
             <div>

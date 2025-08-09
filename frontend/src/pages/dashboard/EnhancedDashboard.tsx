@@ -131,10 +131,9 @@ const EnhancedDashboard: React.FC = () => {
   const currentYear = new Date().getFullYear();
   const maxMonth = selectedYear === currentYear ? currentMonth : 12;
   
-  // Revenus (simplification de la logique)
-  const totalRevenue = dashboardStats?.loyers.revenus.parMois
-    ?.filter(m => m.mois <= maxMonth)
-    ?.reduce((sum, m) => sum + (m._sum.montantPaye || 0), 0) || 0;
+  // Revenus - utiliser la valeur annuelle déjà calculée par l'API
+  // Elle prend en compte les 12 derniers mois avec le bon statut PAYE
+  const totalRevenue = dashboardStats?.loyers.revenus.annee || 0;
   
   // Charges
   const totalCharges = dashboardStats?.charges.parMois
