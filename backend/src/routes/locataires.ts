@@ -43,6 +43,17 @@ router.get('/', asyncHandler(async (req: AuthenticatedRequest, res) => {
     ];
   }
 
+  // Filtrage par statut des locataires (basé sur leurs contrats)
+  if (statut === 'ACTIF') {
+    where.contrats = {
+      some: {
+        contrat: {
+          statut: 'ACTIF'
+        }
+      }
+    };
+  }
+
   const [locataires, total] = await Promise.all([
     prisma.locataire.findMany({
       where,

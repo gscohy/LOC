@@ -25,16 +25,18 @@ const formatDate = (dateString: string) => {
 const LocatairesPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [statusFilter, setStatusFilter] = useState<string>('ACTIF'); // Par défaut : locataires actifs
   const [viewingLocataire, setViewingLocataire] = useState<any>(null);
   const navigate = useNavigate();
   const limit = 10;
 
   const { data: locatairesData, isLoading } = useQuery(
-    ['locataires', { page, limit, search }],
+    ['locataires', { page, limit, search, statut: statusFilter }],
     () => locatairesService.getAll({ 
       page, 
       limit, 
-      search: search || undefined
+      search: search || undefined,
+      statut: statusFilter as 'ACTIF' | 'INACTIF' | undefined
     }),
     { keepPreviousData: true }
   );
@@ -179,6 +181,14 @@ const LocatairesPage: React.FC = () => {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="border border-gray-300 rounded-md px-3 py-2 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+        >
+          <option value="ACTIF">Locataires actifs</option>
+          <option value="">Tous les locataires</option>
+        </select>
       </div>
 
       {/* Locataires table */}
