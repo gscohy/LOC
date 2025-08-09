@@ -38,19 +38,22 @@ import { taskScheduler } from './services/scheduler.js';
 const app = express();
 const PORT = parseInt(process.env.PORT || '7000', 10);
 
-// Trust proxy for Render deployment
-app.set('trust proxy', true);
+// Trust proxy for Railway deployment - more secure configuration
+app.set('trust proxy', 1);
 
 // Initialize Prisma Client
 export const prisma = new PrismaClient({
   log: ['query', 'info', 'warn', 'error'],
 });
 
-// Rate limiting - Plus permissif en développement
+// Rate limiting - configured for Railway with proper proxy trust
 const limiter = rateLimit({
-  windowMs: 5 * 60 * 1000, // 5 minutes (plus court)
-  max: 1000, // 1000 requêtes par 5 minutes (plus élevé)
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  max: 1000, // 1000 requests per 5 minutes
   message: 'Trop de requêtes depuis cette IP, veuillez réessayer plus tard.',
+  trustProxy: 1, // Trust first proxy (Railway)
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 
 // Middleware
@@ -117,6 +120,156 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Test endpoint for rent generation - completely separate
+app.post('/test-generate-rents', async (req, res) => {
+  try {
+    const { PrismaClient } = await import('@prisma/client');
+    const prisma = new PrismaClient();
+    
+    const currentDate = new Date();
+    const currentDay = currentDate.getDate();
+
+    const results = {
+      loyersCrees: [],
+      contratsTraites: 0,
+      contratsActifsTotal: 0,
+      erreurs: []
+    };
+
+    await prisma.$transaction(async (tx) => {
+      const contratsActifs = await tx.contrat.findMany({
+        where: {
+          statut: 'ACTIF',
+          dateDebut: { lte: currentDate },
+          OR: [
+            { dateFin: null },
+            { dateFin: { gte: currentDate } }
+          ]
+        },
+        include: {
+          bien: {
+            select: { id: true, adresse: true, ville: true }
+          },
+          locataires: {
+            include: {
+              locataire: {
+                select: { id: true, nom: true, prenom: true, email: true }
+              }
+            }
+          }
+        }
+      });
+
+      results.contratsActifsTotal = contratsActifs.length;
+
+      const getPeriodsToCheck = (contrat) => {
+        const periods = [];
+        const contratDebut = new Date(contrat.dateDebut);
+        const contratFin = contrat.dateFin ? new Date(contrat.dateFin) : null;
+        let checkDate = new Date(contratDebut.getFullYear(), contratDebut.getMonth(), contrat.jourPaiement);
+        
+        if (contratDebut.getDate() > contrat.jourPaiement) {
+          checkDate.setMonth(checkDate.getMonth() + 1);
+        }
+
+        while (checkDate <= currentDate) {
+          const mois = checkDate.getMonth() + 1;
+          const annee = checkDate.getFullYear();
+          
+          if (contratFin && checkDate > contratFin) break;
+
+          const shouldCreate = checkDate.getMonth() < currentDate.getMonth() ||
+            checkDate.getFullYear() < currentDate.getFullYear() ||
+            (checkDate.getMonth() === currentDate.getMonth() && 
+             checkDate.getFullYear() === currentDate.getFullYear());
+
+          if (shouldCreate) {
+            periods.push({ mois, annee, dateEcheance: new Date(checkDate) });
+          }
+          checkDate.setMonth(checkDate.getMonth() + 1);
+        }
+        return periods;
+      };
+
+      for (const contrat of contratsActifs) {
+        try {
+          results.contratsTraites++;
+          const periodsToCheck = getPeriodsToCheck(contrat);
+
+          for (const period of periodsToCheck) {
+            const loyerExiste = await tx.loyer.findFirst({
+              where: {
+                contratId: contrat.id,
+                mois: period.mois,
+                annee: period.annee
+              }
+            });
+
+            if (!loyerExiste) {
+              let statutInitial = 'EN_ATTENTE';
+              if (period.dateEcheance < currentDate) {
+                statutInitial = 'RETARD';
+              }
+
+              const nouveauLoyer = await tx.loyer.create({
+                data: {
+                  contratId: contrat.id,
+                  mois: period.mois,
+                  annee: period.annee,
+                  montantDu: contrat.loyer + contrat.chargesMensuelles,
+                  montantPaye: 0,
+                  dateEcheance: period.dateEcheance,
+                  statut: statutInitial,
+                  commentaires: `Loyer généré automatiquement (test) le ${currentDate.toISOString()}`
+                }
+              });
+
+              results.loyersCrees.push({
+                loyerId: nouveauLoyer.id,
+                contratId: contrat.id,
+                mois: period.mois,
+                annee: period.annee,
+                montantDu: nouveauLoyer.montantDu,
+                dateEcheance: period.dateEcheance,
+                statut: statutInitial,
+                adresse: contrat.bien.adresse,
+                locataires: contrat.locataires.map(cl => 
+                  `${cl.locataire.prenom} ${cl.locataire.nom}`
+                ).join(', ')
+              });
+            }
+          }
+        } catch (error) {
+          results.erreurs.push({
+            contratId: contrat.id,
+            adresse: contrat.bien?.adresse || 'Adresse inconnue',
+            erreur: error instanceof Error ? error.message : 'Erreur inconnue'
+          });
+        }
+      }
+    });
+
+    await prisma.$disconnect();
+
+    res.json({
+      success: true,
+      message: `✅ TEST RÉUSSI - ${results.loyersCrees.length} loyers créés sur ${results.contratsActifsTotal} contrats actifs.`,
+      data: results,
+      testInfo: {
+        endpoint: '/test-generate-rents',
+        dateExecution: currentDate.toISOString(),
+        note: "Endpoint de test temporaire - sera supprimé après validation"
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: { message: error instanceof Error ? error.message : 'Erreur serveur' },
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // Routes publiques pour les signatures
 app.get('/public/signatures/:filename', (req, res) => {
   const filename = req.params.filename;
@@ -145,6 +298,153 @@ app.get('/public/signatures/:filename', (req, res) => {
   
   // Envoyer le fichier
   res.sendFile(filePath);
+});
+
+// Routes publiques de test (temporaire) - AVANT l'authentification
+app.post('/api/loyers/generer-loyers-manquants-public', async (req, res) => {
+  try {
+    // Importer directement la logique depuis le router
+    const { PrismaClient } = await import('@prisma/client');
+    const prisma = new PrismaClient();
+    
+    const currentDate = new Date();
+    const currentDay = currentDate.getDate();
+
+    const results = {
+      loyersCrees: [],
+      contratsTraites: 0,
+      contratsActifsTotal: 0,
+      erreurs: []
+    };
+
+    await prisma.$transaction(async (tx) => {
+      const contratsActifs = await tx.contrat.findMany({
+        where: {
+          statut: 'ACTIF',
+          dateDebut: { lte: currentDate },
+          OR: [
+            { dateFin: null },
+            { dateFin: { gte: currentDate } }
+          ]
+        },
+        include: {
+          bien: {
+            select: { id: true, adresse: true, ville: true }
+          },
+          locataires: {
+            include: {
+              locataire: {
+                select: { id: true, nom: true, prenom: true, email: true }
+              }
+            }
+          }
+        }
+      });
+
+      results.contratsActifsTotal = contratsActifs.length;
+
+      const getPeriodsToCheck = (contrat) => {
+        const periods = [];
+        const contratDebut = new Date(contrat.dateDebut);
+        const contratFin = contrat.dateFin ? new Date(contrat.dateFin) : null;
+        let checkDate = new Date(contratDebut.getFullYear(), contratDebut.getMonth(), contrat.jourPaiement);
+        
+        if (contratDebut.getDate() > contrat.jourPaiement) {
+          checkDate.setMonth(checkDate.getMonth() + 1);
+        }
+
+        while (checkDate <= currentDate) {
+          const mois = checkDate.getMonth() + 1;
+          const annee = checkDate.getFullYear();
+          
+          if (contratFin && checkDate > contratFin) break;
+
+          const shouldCreate = checkDate.getMonth() < currentDate.getMonth() ||
+            checkDate.getFullYear() < currentDate.getFullYear() ||
+            (checkDate.getMonth() === currentDate.getMonth() && 
+             checkDate.getFullYear() === currentDate.getFullYear());
+
+          if (shouldCreate) {
+            periods.push({ mois, annee, dateEcheance: new Date(checkDate) });
+          }
+          checkDate.setMonth(checkDate.getMonth() + 1);
+        }
+        return periods;
+      };
+
+      for (const contrat of contratsActifs) {
+        try {
+          results.contratsTraites++;
+          const periodsToCheck = getPeriodsToCheck(contrat);
+
+          for (const period of periodsToCheck) {
+            const loyerExiste = await tx.loyer.findFirst({
+              where: {
+                contratId: contrat.id,
+                mois: period.mois,
+                annee: period.annee
+              }
+            });
+
+            if (!loyerExiste) {
+              let statutInitial = 'EN_ATTENTE';
+              if (period.dateEcheance < currentDate) {
+                statutInitial = 'RETARD';
+              }
+
+              const nouveauLoyer = await tx.loyer.create({
+                data: {
+                  contratId: contrat.id,
+                  mois: period.mois,
+                  annee: period.annee,
+                  montantDu: contrat.loyer + contrat.chargesMensuelles,
+                  montantPaye: 0,
+                  dateEcheance: period.dateEcheance,
+                  statut: statutInitial,
+                  commentaires: `Loyer généré automatiquement (test public) le ${currentDate.toISOString()}`
+                }
+              });
+
+              results.loyersCrees.push({
+                loyerId: nouveauLoyer.id,
+                contratId: contrat.id,
+                mois: period.mois,
+                annee: period.annee,
+                montantDu: nouveauLoyer.montantDu,
+                dateEcheance: period.dateEcheance,
+                statut: statutInitial,
+                adresse: contrat.bien.adresse,
+                locataires: contrat.locataires.map(cl => 
+                  `${cl.locataire.prenom} ${cl.locataire.nom}`
+                ).join(', ')
+              });
+            }
+          }
+        } catch (error) {
+          results.erreurs.push({
+            contratId: contrat.id,
+            adresse: contrat.bien?.adresse || 'Adresse inconnue',
+            erreur: error instanceof Error ? error.message : 'Erreur inconnue'
+          });
+        }
+      }
+    });
+
+    res.json({
+      success: true,
+      message: `TEST - Génération automatique terminée. ${results.loyersCrees.length} loyers créés sur ${results.contratsActifsTotal} contrats actifs.`,
+      data: results,
+      note: "⚠️ Endpoint de test public - à supprimer après validation"
+    });
+    
+    await prisma.$disconnect();
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: { message: error instanceof Error ? error.message : 'Erreur inconnue' },
+      timestamp: new Date().toISOString()
+    });
+  }
 });
 
 // Routes
