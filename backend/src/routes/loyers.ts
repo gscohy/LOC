@@ -216,13 +216,11 @@ router.get('/stats', asyncHandler(async (req: AuthenticatedRequest, res) => {
       where: { statut: 'PAYE' },
     }),
 
-    // Revenus des 12 derniers mois
+    // Revenus de l'année en cours (jusqu'au mois courant inclus)
     prisma.loyer.aggregate({
       where: {
-        OR: [
-          { annee: currentYear },
-          { annee: currentYear - 1, mois: { gte: currentMonth } },
-        ],
+        annee: currentYear,
+        mois: { lte: currentMonth },
         statut: 'PAYE',
       },
       _sum: {
@@ -230,14 +228,12 @@ router.get('/stats', asyncHandler(async (req: AuthenticatedRequest, res) => {
       },
     }),
 
-    // Loyers par mois (12 derniers mois)
+    // Loyers par mois de l'année en cours
     prisma.loyer.groupBy({
       by: ['annee', 'mois'],
       where: {
-        OR: [
-          { annee: currentYear },
-          { annee: currentYear - 1, mois: { gte: currentMonth } },
-        ],
+        annee: currentYear,
+        mois: { lte: currentMonth },
       },
       _sum: {
         montantDu: true,
