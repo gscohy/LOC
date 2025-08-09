@@ -1,7 +1,7 @@
 import express from 'express';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { existsSync } from 'fs';
+import { existsSync, readdirSync } from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -18,11 +18,11 @@ app.use((req, res, next) => {
 // Vérifier que le dossier dist existe
 const distPath = join(__dirname, 'dist');
 console.log('🔍 Checking dist path:', distPath);
-console.log('🔍 Files in current directory:', fs.readdirSync(__dirname));
+console.log('🔍 Files in current directory:', readdirSync(__dirname));
 
 if (!existsSync(distPath)) {
   console.error('❌ Dist folder not found at:', distPath);
-  console.error('📁 Available directories:', fs.readdirSync(__dirname));
+  console.error('📁 Available directories:', readdirSync(__dirname));
   process.exit(1);
 }
 
@@ -31,7 +31,7 @@ console.log('🔍 Checking index.html at:', indexPath);
 
 if (!existsSync(indexPath)) {
   console.error('❌ index.html not found at:', indexPath);
-  console.error('📁 Files in dist:', fs.readdirSync(distPath));
+  console.error('📁 Files in dist:', readdirSync(distPath));
   process.exit(1);
 }
 
