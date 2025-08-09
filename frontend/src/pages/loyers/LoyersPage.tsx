@@ -147,7 +147,10 @@ const LoyersPage: React.FC = () => {
     }
   );
 
-  const loyers = loyersData?.data || [];
+  // Debug: voir la structure des données
+  console.log('📊 Données loyers:', loyersData);
+  
+  const loyers = loyersData?.loyers || loyersData?.data || [];
   const pagination = loyersData?.pagination;
 
   const handlePaiementSubmit = (data: PaiementCreate) => {
