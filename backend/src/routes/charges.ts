@@ -217,18 +217,29 @@ function generateRecurringCharges(charge: any, year: number) {
 router.get('/stats', asyncHandler(async (req: AuthenticatedRequest, res) => {
   const { bienId, annee } = req.query;
   const year = annee ? parseInt(annee as string) : new Date().getFullYear();
+  const currentDate = new Date();
+  const currentYear = currentDate.getFullYear();
 
   const where: any = {};
   if (bienId) {
     where.bienId = bienId;
   }
   
-  // Récupérer les charges ponctuelles de l'année
+  // Récupérer les charges ponctuelles de l'année (jusqu'au mois courant si année courante)
+  let endDate: Date;
+  if (year === currentYear) {
+    // Si c'est l'année courante, limiter jusqu'à maintenant
+    endDate = currentDate;
+  } else {
+    // Si c'est une année passée, prendre toute l'année
+    endDate = new Date(year + 1, 0, 1);
+  }
+
   const whereYear = {
     ...where,
     date: {
       gte: new Date(year, 0, 1),
-      lt: new Date(year + 1, 0, 1),
+      lt: endDate,
     }
   };
   
@@ -283,10 +294,16 @@ router.get('/stats', asyncHandler(async (req: AuthenticatedRequest, res) => {
     })
   ]);
 
-  // Générer les occurrences des charges récurrentes pour l'année
+  // Générer les occurrences des charges récurrentes pour l'année (limitées à la date courante)
   const chargesRecurrentesProjectees = chargesRecurrentes.flatMap(charge => 
     generateRecurringCharges(charge, year)
-  );
+  ).filter(charge => {
+    // Si c'est l'année courante, filtrer les charges futures
+    if (year === currentYear) {
+      return new Date(charge.date) <= currentDate;
+    }
+    return true;
+  });
 
   // Combiner toutes les charges (ponctuelles + récurrentes projetées)
   const toutesLesCharges = [

@@ -105,7 +105,7 @@ const FiscalitePage: React.FC = () => {
         <div className="flex space-x-3">
           <Select
             value={selectedYear.toString()}
-            onChange={(value) => setSelectedYear(parseInt(value))}
+            onChange={(e) => setSelectedYear(parseInt(e.target.value))}
             options={yearOptions}
             className="w-32"
           />
