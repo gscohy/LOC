@@ -24,6 +24,7 @@ import { paiementsService, PaiementCreate } from '@/services/paiements';
 import { rappelsService, RappelCreate } from '@/services/rappels';
 import PaiementForm from '@/components/forms/PaiementForm';
 import RappelForm from '@/components/forms/RappelForm';
+import LoyerForm from '@/components/forms/LoyerForm';
 
 interface StatsCardProps {
   title: string;
@@ -86,8 +87,11 @@ const LoyersPage: React.FC = () => {
   const [page, setPage] = useState(1);
   const [paiementModalOpen, setPaiementModalOpen] = useState(false);
   const [rappelModalOpen, setRappelModalOpen] = useState(false);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedLoyer, setSelectedLoyer] = useState<any>(null);
   const [selectedLoyerForRappel, setSelectedLoyerForRappel] = useState<any>(null);
+  const [editingLoyer, setEditingLoyer] = useState<any>(null);
   const limit = 10;
 
   const queryClient = useQueryClient();
@@ -133,6 +137,34 @@ const LoyersPage: React.FC = () => {
     },
   });
 
+  const createLoyerMutation = useMutation(loyersService.create, {
+    onSuccess: () => {
+      queryClient.invalidateQueries('loyers');
+      queryClient.invalidateQueries('loyersStats');
+      setCreateModalOpen(false);
+      toast.success('Loyer créé avec succès');
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.error?.message || 'Erreur lors de la création du loyer');
+    },
+  });
+
+  const updateLoyerMutation = useMutation(
+    ({ id, data }: { id: string; data: any }) => loyersService.update(id, data),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries('loyers');
+        queryClient.invalidateQueries('loyersStats');
+        setEditModalOpen(false);
+        setEditingLoyer(null);
+        toast.success('Loyer modifié avec succès');
+      },
+      onError: (error: any) => {
+        toast.error(error?.response?.data?.error?.message || 'Erreur lors de la modification du loyer');
+      },
+    }
+  );
+
   const recalculateStatusMutation = useMutation(
     () => loyersService.recalculateStatuts(),
     {
@@ -159,6 +191,21 @@ const LoyersPage: React.FC = () => {
 
   const handleRappelSubmit = (data: RappelCreate) => {
     createRappelMutation.mutate(data);
+  };
+
+  const handleLoyerSubmit = (data: any) => {
+    createLoyerMutation.mutate(data);
+  };
+
+  const handleLoyerUpdate = (data: any) => {
+    if (editingLoyer) {
+      updateLoyerMutation.mutate({ id: editingLoyer.id, data });
+    }
+  };
+
+  const openEditModal = (loyer: any) => {
+    setEditingLoyer(loyer);
+    setEditModalOpen(true);
   };
 
   const openPaiementModal = (loyer: any) => {
@@ -206,7 +253,7 @@ const LoyersPage: React.FC = () => {
             )}
             Recalculer les statuts
           </Button>
-          <Button>
+          <Button onClick={() => setCreateModalOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Créer un loyer
           </Button>
@@ -441,6 +488,7 @@ const LoyersPage: React.FC = () => {
                         <Button
                           variant="ghost"
                           size="sm"
+                          onClick={() => openEditModal(loyer)}
                           className="text-gray-600 hover:text-gray-700"
                           title="Modifier"
                         >
@@ -523,6 +571,45 @@ const LoyersPage: React.FC = () => {
             onSubmit={handleRappelSubmit}
             onCancel={closeRappelModal}
             loading={createRappelMutation.isLoading}
+          />
+        )}
+      </Modal>
+
+      {/* Modal de création de loyer */}
+      <Modal
+        isOpen={createModalOpen}
+        onClose={() => setCreateModalOpen(false)}
+        title="Créer un nouveau loyer"
+        size="lg"
+      >
+        <LoyerForm
+          onSubmit={handleLoyerSubmit}
+          onCancel={() => setCreateModalOpen(false)}
+          loading={createLoyerMutation.isLoading}
+        />
+      </Modal>
+
+      {/* Modal de modification de loyer */}
+      <Modal
+        isOpen={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
+        title="Modifier le loyer"
+        size="lg"
+      >
+        {editingLoyer && (
+          <LoyerForm
+            initialData={{
+              contratId: editingLoyer.contratId,
+              mois: editingLoyer.mois,
+              annee: editingLoyer.annee,
+              montantDu: editingLoyer.montantDu,
+              dateEcheance: editingLoyer.dateEcheance ? new Date(editingLoyer.dateEcheance).toISOString().split('T')[0] : '',
+              commentaires: editingLoyer.commentaires || '',
+            }}
+            onSubmit={handleLoyerUpdate}
+            onCancel={() => setEditModalOpen(false)}
+            loading={updateLoyerMutation.isLoading}
+            isEditing={true}
           />
         )}
       </Modal>

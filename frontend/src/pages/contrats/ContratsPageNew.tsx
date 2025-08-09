@@ -16,7 +16,7 @@ import ContratForm from '@/components/forms/ContratForm';
 const ContratsPageNew: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const [statutFilter, setStatutFilter] = useState('');
+  const [statutFilter, setStatutFilter] = useState('ACTIF');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingContrat, setEditingContrat] = useState<Contrat | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);

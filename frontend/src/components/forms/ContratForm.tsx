@@ -18,7 +18,7 @@ const contratSchema = z.object({
   locataireIds: z.array(z.string()).min(1, 'Au moins un locataire est requis'),
   dateDebut: z.string().min(1, 'La date de début est requise'),
   dateFin: z.string().optional(),
-  duree: z.number().min(1, 'La durée doit être positive').max(120, 'Durée maximale: 120 mois'),
+  duree: z.number().min(1, 'La durée doit être positive').max(120, 'Durée maximale: 120 mois').optional(),
   loyer: z.number().min(0, 'Le loyer doit être positif'),
   chargesMensuelles: z.number().min(0, 'Les charges doivent être positives'),
   depotGarantie: z.number().min(0, 'Le dépôt de garantie doit être positif'),
@@ -49,6 +49,7 @@ const ContratForm: React.FC<ContratFormProps> = ({
   isEditing = false,
 }) => {
   const [showDocuments, setShowDocuments] = useState(false);
+  const [hasEndDate, setHasEndDate] = useState(!!initialData?.dateFin);
   const {
     register,
     handleSubmit,
@@ -104,15 +105,18 @@ const ContratForm: React.FC<ContratFormProps> = ({
     }
   }, [watchedBienId, biensData, setValue]);
 
-  // Calculer automatiquement la date de fin
+  // Calculer automatiquement la date de fin seulement si l'option est activée
   useEffect(() => {
-    if (watchedDateDebut && watchedDuree) {
+    if (hasEndDate && watchedDateDebut && watchedDuree) {
       const dateDebut = new Date(watchedDateDebut);
       const dateFin = new Date(dateDebut);
       dateFin.setMonth(dateFin.getMonth() + watchedDuree);
       setValue('dateFin', dateFin.toISOString().split('T')[0]);
+    } else if (!hasEndDate) {
+      setValue('dateFin', '');
+      setValue('duree', 12); // Valeur par défaut pour les contrats sans fin
     }
-  }, [watchedDateDebut, watchedDuree, setValue]);
+  }, [hasEndDate, watchedDateDebut, watchedDuree, setValue]);
 
   const handleFormSubmit = (data: ContratFormData) => {
     // Log des données avant soumission pour debug
@@ -219,32 +223,56 @@ const ContratForm: React.FC<ContratFormProps> = ({
           Période du contrat
         </h3>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Input
-            label="Date de début"
-            type="date"
-            required
-            {...register('dateDebut')}
-            error={errors.dateDebut?.message}
-          />
+        <div className="space-y-4">
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              id="hasEndDate"
+              checked={hasEndDate}
+              onChange={(e) => setHasEndDate(e.target.checked)}
+              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+            />
+            <label htmlFor="hasEndDate" className="ml-2 block text-sm text-gray-700">
+              Définir une date de fin de contrat
+            </label>
+          </div>
+          <p className="text-sm text-gray-600">
+            {hasEndDate 
+              ? "La date de fin sera calculée automatiquement selon la durée définie." 
+              : "Contrat à durée indéterminée ou avec reconduction tacite."
+            }
+          </p>
           
-          <Input
-            label="Durée (mois)"
-            type="number"
-            min="1"
-            max="120"
-            required
-            {...register('duree', { valueAsNumber: true })}
-            error={errors.duree?.message}
-          />
-          
-          <Input
-            label="Date de fin"
-            type="date"
-            {...register('dateFin')}
-            error={errors.dateFin?.message}
-            disabled
-          />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Input
+              label="Date de début"
+              type="date"
+              required
+              {...register('dateDebut')}
+              error={errors.dateDebut?.message}
+            />
+            
+            <Input
+              label="Durée (mois)"
+              type="number"
+              min="1"
+              max="120"
+              required={hasEndDate}
+              {...register('duree', { valueAsNumber: true })}
+              error={errors.duree?.message}
+              disabled={!hasEndDate}
+            />
+            
+            {hasEndDate && (
+              <Input
+                label="Date de fin"
+                type="date"
+                {...register('dateFin')}
+                error={errors.dateFin?.message}
+                disabled
+              />
+            )}
+          </div>
         </div>
       </div>
 

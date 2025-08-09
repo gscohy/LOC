@@ -42,7 +42,8 @@
       "Bash(git push:*)",
       "Bash(git remote add:*)",
       "Bash(del test-init-templates.js test-init-templates.mjs test-route-behavior.mjs test-api-call.mjs check-templates.mjs)",
-      "WebFetch(domain:loc-backend.onrender.com)"
+      "WebFetch(domain:loc-backend.onrender.com)",
+      "WebFetch(domain:loc-frontend.onrender.com)"
     ],
     "deny": []
   }

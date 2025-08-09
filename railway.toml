@@ -1,0 +1,19 @@
+[build]
+builder = "nixpacks"
+
+[deploy]
+startCommand = "node server.js"
+
+[[services]]
+name = "frontend"
+source = "frontend"
+
+[services.build]
+buildCommand = "npm install && npm run build"
+
+[[services]]
+name = "backend" 
+source = "backend"
+
+[services.build]
+buildCommand = "npm install && npm run build"

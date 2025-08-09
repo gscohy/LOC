@@ -841,11 +841,11 @@ router.post('/generer-loyers-manquants', asyncHandler(async (req: AuthenticatedR
           break;
         }
 
-        // Vérifier si nous devons créer ce loyer
-        const shouldCreate = checkDate < currentDate || 
+        // Vérifier si nous devons créer ce loyer (créer dès le 1er du mois)
+        const shouldCreate = checkDate.getMonth() < currentDate.getMonth() ||
+          checkDate.getFullYear() < currentDate.getFullYear() ||
           (checkDate.getMonth() === currentDate.getMonth() && 
-           checkDate.getFullYear() === currentDate.getFullYear() && 
-           currentDay >= contrat.jourPaiement);
+           checkDate.getFullYear() === currentDate.getFullYear());
 
         if (shouldCreate) {
           periods.push({ mois, annee, dateEcheance: new Date(checkDate) });
@@ -1047,11 +1047,11 @@ router.post('/generer-loyers-manquants-public', asyncHandler(async (req, res) =>
           break;
         }
 
-        // Vérifier si nous devons créer ce loyer
-        const shouldCreate = checkDate < currentDate || 
+        // Vérifier si nous devons créer ce loyer (créer dès le 1er du mois)
+        const shouldCreate = checkDate.getMonth() < currentDate.getMonth() ||
+          checkDate.getFullYear() < currentDate.getFullYear() ||
           (checkDate.getMonth() === currentDate.getMonth() && 
-           checkDate.getFullYear() === currentDate.getFullYear() && 
-           currentDay >= contrat.jourPaiement);
+           checkDate.getFullYear() === currentDate.getFullYear());
 
         if (shouldCreate) {
           periods.push({ mois, annee, dateEcheance: new Date(checkDate) });

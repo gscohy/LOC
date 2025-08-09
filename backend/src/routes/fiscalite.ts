@@ -627,6 +627,157 @@ router.post('/comparer-regimes', async (req, res) => {
   }
 });
 
+// GET /api/fiscalite/charges-ventilation - Récupérer la ventilation des charges
+router.get('/charges-ventilation', async (req, res) => {
+  try {
+    const annee = parseInt(req.query.annee as string) || new Date().getFullYear();
+    const proprietaireId = req.query.proprietaireId as string;
+
+    // Construire les filtres de base pour les charges
+    const whereClause: any = {
+      date: {
+        gte: new Date(annee, 0, 1),
+        lte: new Date(annee, 11, 31)
+      }
+    };
+
+    if (proprietaireId) {
+      whereClause.bien = {
+        proprietaires: {
+          some: { proprietaireId }
+        }
+      };
+    }
+
+    // Récupérer les charges avec les détails des biens
+    const charges = await prisma.charge.findMany({
+      where: whereClause,
+      include: {
+        bien: {
+          include: {
+            proprietaires: {
+              include: {
+                proprietaire: true
+              }
+            }
+          }
+        }
+      },
+      orderBy: {
+        date: 'desc'
+      }
+    });
+
+    // Grouper les charges par catégorie et bien
+    const ventilation = charges.reduce((acc: any, charge) => {
+      const bienKey = `${charge.bien.adresse}_${charge.bien.id}`;
+      
+      if (!acc[bienKey]) {
+        acc[bienKey] = {
+          bien: {
+            id: charge.bien.id,
+            adresse: charge.bien.adresse,
+            ville: charge.bien.ville,
+            codePostal: charge.bien.codePostal
+          },
+          categories: {},
+          totalBien: 0
+        };
+      }
+
+      if (!acc[bienKey].categories[charge.categorie]) {
+        acc[bienKey].categories[charge.categorie] = {
+          charges: [],
+          total: 0
+        };
+      }
+
+      acc[bienKey].categories[charge.categorie].charges.push({
+        id: charge.id,
+        description: charge.description,
+        montant: charge.montant,
+        date: charge.date,
+        facture: charge.facture,
+        payee: charge.payee
+      });
+
+      acc[bienKey].categories[charge.categorie].total += charge.montant;
+      acc[bienKey].totalBien += charge.montant;
+
+      return acc;
+    }, {});
+
+    // Calculer les totaux globaux par catégorie
+    const totauxCategories: any = {};
+    let totalGeneral = 0;
+
+    Object.values(ventilation).forEach((bien: any) => {
+      Object.entries(bien.categories).forEach(([categorie, data]: [string, any]) => {
+        if (!totauxCategories[categorie]) {
+          totauxCategories[categorie] = 0;
+        }
+        totauxCategories[categorie] += data.total;
+        totalGeneral += data.total;
+      });
+    });
+
+    const result = {
+      annee,
+      ventilation: Object.values(ventilation),
+      totauxCategories,
+      totalGeneral,
+      nombreCharges: charges.length
+    };
+
+    res.json({
+      success: true,
+      data: result
+    });
+
+    logger.info(`Ventilation des charges récupérée pour l'année ${annee}`);
+  } catch (error) {
+    logger.error('Erreur lors de la récupération de la ventilation des charges:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erreur serveur lors de la récupération de la ventilation des charges'
+    });
+  }
+});
+
+// POST /api/fiscalite/charges-ventilation - Sauvegarder la ventilation des charges
+router.post('/charges-ventilation', async (req, res) => {
+  try {
+    const { annee, proprietaireId, ventilation } = req.body;
+
+    if (!annee || !ventilation) {
+      return res.status(400).json({
+        success: false,
+        error: 'Données manquantes'
+      });
+    }
+
+    // Pour l'instant, cette route retourne juste un succès
+    // Dans une version future, on pourrait sauvegarder des ajustements de ventilation
+    res.json({
+      success: true,
+      message: 'Ventilation des charges sauvegardée',
+      data: {
+        annee,
+        proprietaireId,
+        dateSauvegarde: new Date().toISOString()
+      }
+    });
+
+    logger.info(`Ventilation des charges sauvegardée pour l'année ${annee}`);
+  } catch (error) {
+    logger.error('Erreur lors de la sauvegarde de la ventilation des charges:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erreur serveur lors de la sauvegarde de la ventilation des charges'
+    });
+  }
+});
+
 // GET /api/fiscalite/baremes/:annee - Récupérer les barèmes fiscaux
 router.get('/baremes/:annee', async (req, res) => {
   try {

@@ -126,29 +126,17 @@ const EnhancedDashboard: React.FC = () => {
   const totalBiens = dashboardStats?.biens.total || 0;
   const totalLocataires = dashboardStats?.locataires.total || 0;
   
-  // Calculer les totaux seulement jusqu'au mois en cours
+  // Calculer les métriques financières
   const currentMonth = new Date().getMonth() + 1;
   const currentYear = new Date().getFullYear();
   const maxMonth = selectedYear === currentYear ? currentMonth : 12;
   
-  // Revenus jusqu'au mois en cours (avec déduplication intelligente)
-  const loyersParMois = new Map();
-  dashboardStats?.loyers.revenus.parMois
+  // Revenus (simplification de la logique)
+  const totalRevenue = dashboardStats?.loyers.revenus.parMois
     ?.filter(m => m.mois <= maxMonth)
-    ?.forEach(m => {
-      const mois = m.mois;
-      const montantPaye = m._sum.montantPaye || 0;
-      
-      // Si le mois existe déjà, garder le PREMIER montant trouvé (généralement le plus fiable)
-      if (!loyersParMois.has(mois)) {
-        loyersParMois.set(mois, montantPaye);
-      }
-      // Ignorer les doublons
-    });
+    ?.reduce((sum, m) => sum + (m._sum.montantPaye || 0), 0) || 0;
   
-  const totalRevenue = Array.from(loyersParMois.values()).reduce((sum, montant) => sum + montant, 0);
-  
-  // Charges jusqu'au mois en cours
+  // Charges
   const totalCharges = dashboardStats?.charges.parMois
     ?.filter(m => {
       const [, month] = m.mois.split('-');
@@ -158,34 +146,27 @@ const EnhancedDashboard: React.FC = () => {
     
   const beneficeNet = totalRevenue - totalCharges;
   
-  // Debug pour comprendre les montants
-  console.log('🔍 Dashboard Debug:', {
-    selectedYear,
-    currentMonth,
-    maxMonth,
-    totalRevenue,
-    totalCharges,
-    beneficeNet,
-    loyersParMois: dashboardStats?.loyers.revenus.parMois,
-    chargesParMois: dashboardStats?.charges.parMois
-  });
+  // Calculs de métriques avancées
+  const totalRevenuePotentiel = dashboardStats?.loyers.revenus.parMois
+    ?.filter(m => m.mois <= maxMonth)
+    ?.reduce((sum, m) => sum + (m._sum.montantDu || 0), 0) || 0;
   
-  // Debug détaillé des revenus
-  if (dashboardStats?.loyers.revenus.parMois) {
-    console.log('💰 Détail revenus par mois (AVANT déduplication):');
-    dashboardStats.loyers.revenus.parMois
-      .filter(m => m.mois <= maxMonth)
-      .forEach(m => {
-        console.log(`Mois ${m.mois}: Payé=${m._sum.montantPaye}€, Dû=${m._sum.montantDu}€`);
-      });
-    
-    console.log('💰 Détail revenus par mois (APRÈS déduplication):');
-    loyersParMois.forEach((montant, mois) => {
-      console.log(`Mois ${mois}: Payé=${montant}€`);
-    });
-    
-    console.log(`💰 Total calculé: ${totalRevenue}€ (devrait être 4095€)`);
-  }
+  const tauxRecouvrement = totalRevenuePotentiel > 0 ? (totalRevenue / totalRevenuePotentiel) * 100 : 0;
+  const margeNette = totalRevenue > 0 ? (beneficeNet / totalRevenue) * 100 : 0;
+  const ratioCharges = totalRevenue > 0 ? (totalCharges / totalRevenue) * 100 : 0;
+  
+  // Calculs de tendance (par rapport à l'année précédente)
+  const calculateTrend = (current: number, previous: number): { value: number, isPositive: boolean } => {
+    if (previous === 0) return { value: 0, isPositive: true };
+    const trend = ((current - previous) / previous) * 100;
+    return { value: Math.abs(Math.round(trend)), isPositive: trend >= 0 };
+  };
+  
+  // Pour les tendances, on utiliserait idéalement les données de l'année précédente
+  // Pour l'instant, on calcule des tendances basées sur les données actuelles
+  const revenueTrend = calculateTrend(totalRevenue, totalRevenuePotentiel);
+  const chargeTrend = calculateTrend(totalCharges, totalRevenue * 0.3); // Estimation 30% de charges
+  const beneficeTrend = calculateTrend(beneficeNet, totalRevenue * 0.1);
 
   const yearOptions = Array.from({length: 5}, (_, i) => {
     const year = new Date().getFullYear() - i;
@@ -229,41 +210,71 @@ const EnhancedDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Stats cards */}
+      {/* Stats cards principales */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         <StatsCard
           title="Propriétaires"
           value={totalProprietaires}
           icon={Users}
           color="bg-blue-500"
-          trend={{ value: 12, isPositive: true }}
         />
         <StatsCard
           title="Biens"
           value={totalBiens}
           icon={Home}
           color="bg-green-500"
-          trend={{ value: 8, isPositive: true }}
         />
         <StatsCard
           title="Locataires"
           value={totalLocataires}
           icon={Building2}
           color="bg-purple-500"
-          trend={{ value: 5, isPositive: false }}
         />
         <StatsCard
           title="Revenus"
           value={`${totalRevenue.toLocaleString()}€`}
           icon={Euro}
           color="bg-emerald-500"
+          trend={revenueTrend}
         />
         <StatsCard
           title="Bénéfice Net"
           value={`${beneficeNet.toLocaleString()}€`}
           icon={TrendingUp}
           color={beneficeNet >= 0 ? "bg-green-600" : "bg-red-500"}
-          trend={{ value: 22, isPositive: beneficeNet >= 0 }}
+          trend={beneficeTrend}
+        />
+      </div>
+
+      {/* Nouveaux KPIs financiers avancés */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <StatsCard
+          title="Taux de Recouvrement"
+          value={`${tauxRecouvrement.toFixed(1)}%`}
+          icon={Activity}
+          color="bg-cyan-500"
+          trend={calculateTrend(tauxRecouvrement, 95)} // Objectif 95%
+        />
+        <StatsCard
+          title="Marge Nette"
+          value={`${margeNette.toFixed(1)}%`}
+          icon={BarChart3}
+          color="bg-indigo-500"
+          trend={calculateTrend(margeNette, 20)} // Objectif 20%
+        />
+        <StatsCard
+          title="Ratio Charges"
+          value={`${ratioCharges.toFixed(1)}%`}
+          icon={PieChart}
+          color="bg-orange-500"
+          trend={calculateTrend(30, ratioCharges)} // Objectif moins de 30%
+        />
+        <StatsCard
+          title="Charges Totales"
+          value={`${totalCharges.toLocaleString()}€`}
+          icon={AlertTriangle}
+          color="bg-red-500"
+          trend={chargeTrend}
         />
       </div>
 

@@ -75,6 +75,25 @@ const ChargesPage: React.FC = () => {
     }
   );
 
+  // Récupérer les charges pour la synthèse (sans filtres de recherche)
+  const {
+    data: synthesisChargesData,
+    isLoading: synthesisChargesLoading,
+  } = useQuery(
+    ['charges-synthesis', synthesisYear],
+    () => {
+      console.log('🔍 Requête charges synthèse pour année:', synthesisYear);
+      return chargesService.getAll({
+        page: 1,
+        limit: 1000, // Récupérer toutes les charges pour la synthèse
+        annee: synthesisYear
+      });
+    },
+    {
+      keepPreviousData: true,
+    }
+  );
+
   // Récupérer les statistiques
   const { data: statsData } = useQuery(
     ['charges-stats', filters.bienId],
@@ -462,9 +481,9 @@ const ChargesPage: React.FC = () => {
       )}
 
       {/* Tableau de synthèse des charges par mois et localisation */}
-      {chargesData && chargesData.charges.length > 0 && (
+      {synthesisChargesData && synthesisChargesData.charges.length > 0 && (
         <ChargesSynthesisTable
-          charges={chargesData.charges}
+          charges={synthesisChargesData.charges}
           selectedYear={synthesisYear}
           onYearChange={setSynthesisYear}
         />
