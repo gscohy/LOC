@@ -153,4 +153,9 @@ export const loyersService = {
     const { data } = await api.get<ApiResponse<LoyerStats>>('/loyers/stats');
     return data.data;
   },
+
+  async recalculateStatuts(): Promise<{updates: {id: string, ancienStatut: string, nouveauStatut: string}[]}> {
+    const { data } = await api.post<ApiResponse<{updates: {id: string, ancienStatut: string, nouveauStatut: string}[]}>>('/loyers/recalculate-statuts');
+    return data.data;
+  },
 };

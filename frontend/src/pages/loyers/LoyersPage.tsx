@@ -133,6 +133,20 @@ const LoyersPage: React.FC = () => {
     },
   });
 
+  const recalculateStatusMutation = useMutation(
+    () => loyersService.recalculateStatuts(),
+    {
+      onSuccess: (data) => {
+        queryClient.invalidateQueries('loyers');
+        queryClient.invalidateQueries('loyersStats');
+        toast.success(`${data.updates?.length || 0} statuts mis à jour`);
+      },
+      onError: (error: any) => {
+        toast.error(error?.response?.data?.error?.message || 'Erreur lors du recalcul');
+      },
+    }
+  );
+
   const loyers = loyersData?.data || [];
   const pagination = loyersData?.pagination;
 
@@ -176,10 +190,24 @@ const LoyersPage: React.FC = () => {
             Gérez les paiements et le suivi des loyers
           </p>
         </div>
-        <Button>
-          <Plus className="h-4 w-4 mr-2" />
-          Créer un loyer
-        </Button>
+        <div className="flex space-x-3">
+          <Button
+            variant="outline"
+            onClick={() => recalculateStatusMutation.mutate()}
+            disabled={recalculateStatusMutation.isLoading}
+          >
+            {recalculateStatusMutation.isLoading ? (
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600 mr-2"></div>
+            ) : (
+              <Clock className="h-4 w-4 mr-2" />
+            )}
+            Recalculer les statuts
+          </Button>
+          <Button>
+            <Plus className="h-4 w-4 mr-2" />
+            Créer un loyer
+          </Button>
+        </div>
       </div>
 
       {/* Statistics */}
