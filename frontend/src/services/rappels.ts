@@ -290,6 +290,18 @@ Nous vous mettons en demeure de régler immédiatement le loyer impayé de ${moi
 
 La gestion locative`;
 
+      case 'INFORMATION':
+        return `Cher(e) ${locataires},
+
+Nous souhaitons vous informer concernant votre logement situé ${adresse}.
+
+[Veuillez personnaliser ce message selon vos besoins]
+
+Nous restons à votre disposition pour toute question.
+
+Cordialement,
+La gestion locative`;
+
       default:
         return `Cher(e) ${locataires},
 
