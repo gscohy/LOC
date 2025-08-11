@@ -321,6 +321,8 @@ router.post('/:id/upload-tableau', upload.single('tableau'), asyncHandler(async 
       if (!row || row.length === 0 || !row[0]) continue;
       
       try {
+        console.log(`📊 Parsing ligne ${i}:`, row);
+        
         const rang = parseInt(row[0]);
         const dateStr = row[1];
         const montantRecouvrer = parseFloat(row[2]);
@@ -329,22 +331,39 @@ router.post('/:id/upload-tableau', upload.single('tableau'), asyncHandler(async 
         const partAccessoires = parseFloat(row[5]);
         const capitalRestant = parseFloat(row[6]);
         
+        console.log(`🔢 Données parsées ligne ${i}:`, {
+          rang, dateStr, montantRecouvrer, capitalAmorti, 
+          partInterets, partAccessoires, capitalRestant
+        });
+        
         // Valider les données
         if (isNaN(rang) || isNaN(montantRecouvrer) || isNaN(capitalAmorti) || 
             isNaN(partInterets) || isNaN(partAccessoires) || isNaN(capitalRestant)) {
+          console.log(`⚠️ Ligne ${i} ignorée - données invalides`);
           continue; // Ignorer les lignes avec des données invalides
         }
         
         // Parser la date (format DD/MM/YYYY)
         let dateEcheance: Date;
+        console.log(`📅 Parsing date ligne ${i}:`, typeof dateStr, dateStr);
+        
         if (typeof dateStr === 'string') {
           const [day, month, year] = dateStr.split('/');
           dateEcheance = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+          console.log(`📅 Date string parsée:`, { day, month, year, result: dateEcheance });
         } else if (typeof dateStr === 'number') {
           // Date Excel (nombre de jours depuis 1900)
           dateEcheance = new Date((dateStr - 25569) * 86400 * 1000);
+          console.log(`📅 Date Excel parsée:`, dateStr, '->', dateEcheance);
         } else {
+          console.log(`⚠️ Ligne ${i} ignorée - format de date non reconnu:`, typeof dateStr, dateStr);
           continue; // Ignorer si impossible de parser la date
+        }
+        
+        // Vérifier que la date est valide
+        if (isNaN(dateEcheance.getTime())) {
+          console.log(`⚠️ Ligne ${i} ignorée - date invalide:`, dateEcheance);
+          continue;
         }
         
         echeances.push({
@@ -368,16 +387,26 @@ router.post('/:id/upload-tableau', upload.single('tableau'), asyncHandler(async 
     }
     
     console.log('💾 Sauvegarde des échéances:', echeances.length, 'échéances');
+    console.log('📝 Première échéance exemple:', echeances[0]);
     
-    // Supprimer les anciennes échéances s'il y en a
-    await prisma.echeancePret.deleteMany({
-      where: { pretId: pret.id },
-    });
-    
-    // Insérer les nouvelles échéances
-    await prisma.echeancePret.createMany({
-      data: echeances,
-    });
+    try {
+      // Supprimer les anciennes échéances s'il y en a
+      await prisma.echeancePret.deleteMany({
+        where: { pretId: pret.id },
+      });
+      
+      console.log('🗑️ Anciennes échéances supprimées');
+      
+      // Insérer les nouvelles échéances
+      await prisma.echeancePret.createMany({
+        data: echeances,
+      });
+      
+      console.log('✅ Nouvelles échéances insérées');
+    } catch (dbError: any) {
+      console.error('❌ Erreur base de données:', dbError);
+      throw new Error(`Erreur sauvegarde BDD: ${dbError.message}`);
+    }
     
     // Mettre à jour le prêt avec le nom du fichier
     await prisma.pretImmobilier.update({
