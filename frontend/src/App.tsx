@@ -29,6 +29,7 @@ import RappelsPage from '@/pages/rappels/RappelsPage';
 import QuittancesPage from '@/pages/quittances/QuittancesPage';
 import ChargesPage from '@/pages/charges/ChargesPage';
 import FiscalitePage from '@/pages/fiscalite/FiscalitePage';
+import PretsPage from '@/pages/prets/PretsPage';
 import DiagnosticPage from '@/pages/DiagnosticPage';
 import EmailsPage from '@/pages/emails/EmailsPage';
 
@@ -282,6 +283,16 @@ function App() {
             <ProtectedRoute>
               <DashboardLayout>
                 <FiscalitePage />
+              </DashboardLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/prets"
+          element={
+            <ProtectedRoute>
+              <DashboardLayout>
+                <PretsPage />
               </DashboardLayout>
             </ProtectedRoute>
           }

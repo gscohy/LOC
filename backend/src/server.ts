@@ -31,6 +31,7 @@ import garantsRoutes from './routes/garants.js';
 import fiscaliteRoutes from './routes/fiscalite.js';
 import documentsRoutes from './routes/documents.js';
 import schedulerRoutes from './routes/scheduler.js';
+import pretsRoutes from './routes/prets.js';
 
 // Import scheduler
 import { taskScheduler } from './services/scheduler.js';
@@ -469,6 +470,7 @@ app.use('/api/garants', authMiddleware, garantsRoutes);
 app.use('/api/fiscalite', authMiddleware, fiscaliteRoutes);
 app.use('/api/documents', authMiddleware, documentsRoutes);
 app.use('/api/scheduler', authMiddleware, schedulerRoutes);
+app.use('/api/prets', authMiddleware, pretsRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {

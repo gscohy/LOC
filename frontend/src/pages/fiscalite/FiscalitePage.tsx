@@ -18,9 +18,11 @@ import Button from '@/components/ui/Button';
 import Select from '@/components/ui/Select';
 import { dashboardService } from '@/services/dashboard';
 import { fiscaliteService } from '@/services/fiscalite';
+import { pretsService } from '@/services/prets';
 import Declaration2044Modal from '@/components/fiscalite/Declaration2044Modal';
 import SimulateurImpotModal from '@/components/fiscalite/SimulateurImpotModal';
 import ChargesVentilationModal from '@/components/fiscalite/ChargesVentilationModal';
+import FiscalitePretsModal from '@/components/prets/FiscalitePretsModal';
 
 const FiscalitePage: React.FC = () => {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -28,6 +30,7 @@ const FiscalitePage: React.FC = () => {
   const [showDeclarationModal, setShowDeclarationModal] = useState(false);
   const [showSimulateurModal, setShowSimulateurModal] = useState(false);
   const [showChargesVentilationModal, setShowChargesVentilationModal] = useState(false);
+  const [showFiscalitePretsModal, setShowFiscalitePretsModal] = useState(false);
 
   // Récupérer les données fiscales
   const { data: dashboardStats, isLoading } = useQuery(
@@ -58,6 +61,16 @@ const FiscalitePage: React.FC = () => {
     }
   );
 
+  // Récupérer les statistiques des prêts pour l'année
+  const { data: pretsStats } = useQuery(
+    ['prets-stats', selectedYear],
+    () => pretsService.getStatistiquesAnnuelles(selectedYear),
+    {
+      staleTime: 30 * 1000,
+      select: (data) => data.data
+    }
+  );
+
   const yearOptions = Array.from({length: 5}, (_, i) => {
     const year = new Date().getFullYear() - i;
     return { value: year.toString(), label: year.toString() };
@@ -72,10 +85,17 @@ const FiscalitePage: React.FC = () => {
     }).format(amount);
   };
 
-  // Calculs fiscaux
+  // Calculs fiscaux avec intégration des prêts
   const revenus = dashboardStats?.loyers.revenus.annee || 0;
-  const charges = dashboardStats?.charges.total.montant || 0;
-  const benefice = revenus - charges;
+  const chargesOperationnelles = dashboardStats?.charges.total.montant || 0;
+  
+  // Ajouter les intérêts et assurances des prêts aux charges
+  const interetsEmprunts = pretsStats?.totauxGlobaux.interets || 0;
+  const assuranceEmprunts = pretsStats?.totauxGlobaux.assurance || 0;
+  const chargesPrets = interetsEmprunts + assuranceEmprunts;
+  
+  const chargesTotal = chargesOperationnelles + chargesPrets;
+  const benefice = revenus - chargesTotal;
   const deficitFoncier = benefice < 0 ? Math.abs(benefice) : 0;
   const beneficeFoncier = benefice > 0 ? benefice : 0;
 
@@ -153,8 +173,13 @@ const FiscalitePage: React.FC = () => {
               <TrendingDown className="h-6 w-6 text-white" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Charges déductibles</p>
-              <p className="text-2xl font-semibold text-gray-900">{formatCurrency(charges)}</p>
+              <p className="text-sm font-medium text-gray-600">Charges déductibles totales</p>
+              <p className="text-2xl font-semibold text-gray-900">{formatCurrency(chargesTotal)}</p>
+              {chargesPrets > 0 && (
+                <p className="text-xs text-gray-500">
+                  dont {formatCurrency(chargesPrets)} prêts
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -207,8 +232,14 @@ const FiscalitePage: React.FC = () => {
                 </div>
                 <div className="flex justify-between">
                   <span>Case 221 - Frais et charges :</span>
-                  <span className="font-medium">{formatCurrency(charges)}</span>
+                  <span className="font-medium">{formatCurrency(chargesTotal)}</span>
                 </div>
+                {chargesPrets > 0 && (
+                  <div className="flex justify-between text-sm text-blue-600 ml-4">
+                    <span>• Intérêts et assurance prêts :</span>
+                    <span>{formatCurrency(chargesPrets)}</span>
+                  </div>
+                )}
                 <hr className="border-blue-200" />
                 <div className="flex justify-between font-semibold">
                   <span>Résultat foncier :</span>
@@ -326,9 +357,9 @@ const FiscalitePage: React.FC = () => {
                     ✓ <strong>Ventilation paramétrée appliquée</strong>
                   </div>
                 )}
-                {(!fiscalData?.charges.fraisGestion && !fiscalData?.charges.assurances && !fiscalData?.charges.taxeFonciere && !chargesVentilation) && charges > 0 && (
+                {(!fiscalData?.charges.fraisGestion && !fiscalData?.charges.assurances && !fiscalData?.charges.taxeFonciere && !chargesVentilation) && chargesOperationnelles > 0 && (
                   <div className="mt-2 p-2 bg-orange-50 rounded text-xs text-orange-700">
-                    <strong>Attention :</strong> Charges enregistrées globalement ({formatCurrency(charges)})
+                    <strong>Attention :</strong> Charges enregistrées globalement ({formatCurrency(chargesOperationnelles)})
                     <br />Utilisez "Paramétrer la ventilation" pour détailler
                   </div>
                 )}
@@ -354,11 +385,33 @@ const FiscalitePage: React.FC = () => {
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span>Intérêts d'emprunt</span>
-                  <span className="font-medium">{formatCurrency(fiscalData?.charges.interetsEmprunt || chargesVentilation?.interetsEmprunt || 0)}</span>
+                  <span className="font-medium">{formatCurrency((fiscalData?.charges.interetsEmprunt || chargesVentilation?.interetsEmprunt || 0) + interetsEmprunts)}</span>
                 </div>
+                {interetsEmprunts > 0 && (
+                  <div className="flex justify-between text-sm text-blue-600 ml-4">
+                    <span>• Intérêts prêts immobiliers :</span>
+                    <span>{formatCurrency(interetsEmprunts)}</span>
+                  </div>
+                )}
+                {assuranceEmprunts > 0 && (
+                  <div className="flex justify-between">
+                    <span>Assurance emprunteur</span>
+                    <span className="font-medium">{formatCurrency(assuranceEmprunts)}</span>
+                  </div>
+                )}
+                {chargesPrets > 0 && (
+                  <div className="flex justify-end mt-2">
+                    <button
+                      onClick={() => setShowFiscalitePretsModal(true)}
+                      className="text-xs text-blue-600 hover:text-blue-800 underline"
+                    >
+                      Voir le détail des prêts
+                    </button>
+                  </div>
+                )}
                 <div className="flex justify-between border-t pt-2 font-semibold">
                   <span>Total charges</span>
-                  <span className="text-red-600">{formatCurrency(fiscalData?.charges.total || charges)}</span>
+                  <span className="text-red-600">{formatCurrency(chargesTotal)}</span>
                 </div>
               </div>
             </div>
@@ -374,11 +427,11 @@ const FiscalitePage: React.FC = () => {
               <li>• <strong>Taxe foncière :</strong> Entièrement déductible (mais pas la taxe d'habitation)</li>
             </ul>
             {/* Message sur les charges globales si pas de détail */}
-            {charges > 0 && (!fiscalData?.charges.fraisGestion && !fiscalData?.charges.assurances && !fiscalData?.charges.taxeFonciere && !fiscalData?.charges.travaux && !fiscalData?.charges.interetsEmprunt) && (
+            {chargesOperationnelles > 0 && (!fiscalData?.charges.fraisGestion && !fiscalData?.charges.assurances && !fiscalData?.charges.taxeFonciere && !fiscalData?.charges.travaux && !fiscalData?.charges.interetsEmprunt) && (
               <div className="mt-3 pt-3 border-t border-blue-200 bg-yellow-50 p-3 rounded">
                 <h5 className="font-medium text-yellow-900 mb-1">⚠️ Charges non ventilées</h5>
                 <p className="text-sm text-yellow-800">
-                  Vos charges totales de <strong>{formatCurrency(charges)}</strong> sont enregistrées globalement.
+                  Vos charges totales de <strong>{formatCurrency(chargesOperationnelles)}</strong> sont enregistrées globalement.
                   <br />Pour une déclaration précise, utilisez le bouton "Générer la déclaration 2044" pour obtenir le détail par bien.
                 </p>
               </div>
@@ -456,7 +509,7 @@ const FiscalitePage: React.FC = () => {
         onClose={() => setShowSimulateurModal(false)}
         year={selectedYear}
         initialRevenus={revenus}
-        initialCharges={charges}
+        initialCharges={chargesTotal}
       />
 
       <ChargesVentilationModal
@@ -464,7 +517,12 @@ const FiscalitePage: React.FC = () => {
         onClose={() => setShowChargesVentilationModal(false)}
         year={selectedYear}
         proprietaireId={selectedProprietaire || undefined}
-        totalCharges={charges}
+        totalCharges={chargesOperationnelles}
+      />
+
+      <FiscalitePretsModal
+        isOpen={showFiscalitePretsModal}
+        onClose={() => setShowFiscalitePretsModal(false)}
       />
     </div>
   );

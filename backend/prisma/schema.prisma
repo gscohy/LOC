@@ -78,6 +78,7 @@ model Bien {
   charges       Charge[]
   lots          Lot[]
   documentsFiles Document[] @relation("BienDocuments")
+  prets         PretImmobilier[]
 
   @@map("biens")
 }
@@ -410,4 +411,59 @@ model Document {
   bien        Bien?      @relation("BienDocuments", fields: [bienId], references: [id], onDelete: Cascade)
 
   @@map("documents")
+}
+
+model PretImmobilier {
+  id                String   @id @default(cuid())
+  bienId            String   // Bien auquel le prêt est rattaché
+  
+  // Informations générales du prêt
+  nom               String   // Nom/description du prêt (ex: "Prêt acquisition 26 rue du moulin")
+  banque            String   // Nom de la banque
+  numeroPret        String?  // Numéro du prêt
+  montantEmprunte   Float    // Montant initial emprunté
+  tauxInteret       Float    // Taux d'intérêt annuel (ex: 1.55)
+  dureeAnnees       Int      // Durée en années (ex: 20)
+  dateDebut         DateTime // Date de début du prêt
+  dateFin           DateTime // Date de fin prévue du prêt
+  mensualiteBase    Float    // Mensualité de base (sans assurance)
+  mensualiteAssurance Float @default(0) // Part assurance mensuelle
+  
+  // Statut et métadonnées
+  statut            String   @default("ACTIF") // ACTIF, SOLDE, SUSPENDU
+  fichierOriginal   String?  // Nom du fichier XLS importé
+  dateImport        DateTime @default(now())
+  commentaires      String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  bien              Bien     @relation(fields: [bienId], references: [id], onDelete: Cascade)
+  echeances         EcheancePret[]
+
+  @@map("prets_immobiliers")
+}
+
+model EcheancePret {
+  id                String   @id @default(cuid())
+  pretId            String   // Prêt auquel appartient cette échéance
+  
+  // Données de l'échéance (issues du tableau XLS)
+  rang              Int      // Numéro de l'échéance (1, 2, 3...)
+  dateEcheance      DateTime // Date d'échéance
+  montantRecouvrer  Float    // Montant total à recouvrer
+  capitalAmorti     Float    // Capital amorti dans cette échéance
+  partInterets      Float    // Part des intérêts
+  partAccessoires   Float    // Part accessoires (assurance)
+  capitalRestant    Float    // Capital restant dû après cette échéance
+  
+  // Métadonnées
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  pret              PretImmobilier @relation(fields: [pretId], references: [id], onDelete: Cascade)
+
+  @@unique([pretId, rang]) // Une seule échéance par rang pour un prêt
+  @@map("echeances_prets")
 }
