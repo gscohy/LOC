@@ -129,7 +129,7 @@ const PretsPage: React.FC = () => {
 
   const biensOptions = [
     { value: '', label: 'Tous les biens' },
-    ...(biensData?.data?.biens?.map((bien: any) => ({
+    ...(biensData?.data?.map((bien: any) => ({
       value: bien.id,
       label: `${bien.adresse}, ${bien.ville}`
     })) || [])
