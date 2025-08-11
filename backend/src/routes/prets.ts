@@ -52,35 +52,26 @@ const pretSchema = z.object({
 });
 
 // @route   GET /api/prets
-// @desc    Get all loans
+// @desc    Get all loans (with debug info)
 // @access  Private
 router.get('/', asyncHandler(async (req: AuthenticatedRequest, res) => {
-  const { page = '1', limit = '10', bienId, statut } = req.query;
-  
-  const pageNum = parseInt(page as string);
-  const limitNum = parseInt(limit as string);
-  const skip = (pageNum - 1) * limitNum;
+  try {
+    // Debug: Check if tables exist
+    const tables = await prisma.$queryRaw`
+      SELECT table_name FROM information_schema.tables 
+      WHERE table_schema = 'public' 
+      AND table_name IN ('PretImmobilier', 'EcheancePret');
+    `;
 
-  const where: any = {};
-  if (bienId) {
-    where.bienId = bienId;
-  }
-  if (statut) {
-    where.statut = statut;
-  }
-
-  const [prets, total] = await Promise.all([
-    prisma.pretImmobilier.findMany({
-      where,
-      skip,
-      take: limitNum,
+    // Try to access the model
+    const prets = await prisma.pretImmobilier.findMany({
+      take: 10,
       include: {
         bien: {
           select: {
             id: true,
             adresse: true,
             ville: true,
-            codePostal: true,
           },
         },
         _count: {
@@ -89,25 +80,37 @@ router.get('/', asyncHandler(async (req: AuthenticatedRequest, res) => {
           },
         },
       },
-      orderBy: {
-        dateDebut: 'desc',
-      },
-    }),
-    prisma.pretImmobilier.count({ where }),
-  ]);
+    });
 
-  res.json({
-    success: true,
-    data: {
-      prets,
-      pagination: {
-        page: pageNum,
-        limit: limitNum,
-        total,
-        pages: Math.ceil(total / limitNum),
+    res.json({
+      success: true,
+      debug: {
+        tablesFound: tables,
+        prismaWorking: true,
+        pretsCount: prets.length,
       },
-    },
-  });
+      data: {
+        prets,
+        pagination: {
+          page: 1,
+          limit: 10,
+          total: prets.length,
+          pages: 1,
+        },
+      },
+    });
+
+  } catch (error: any) {
+    res.status(400).json({
+      success: false,
+      error: {
+        message: 'Debug info',
+        originalError: error.message,
+        code: error.code,
+        meta: error.meta,
+      },
+    });
+  }
 }));
 
 // @route   GET /api/prets/:id
