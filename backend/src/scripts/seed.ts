@@ -210,33 +210,76 @@ async function main() {
       },
       {
         nom: 'Quittance de loyer',
-        sujet: 'Quittance de loyer - {{periode}} - {{bien_adresse}}',
+        sujet: 'Quittance de loyer - {{mois_annee}} - {{bien_adresse}}',
         contenu: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
+          <div style="font-family: Arial, sans-serif; max-width: 700px; margin: 0 auto; padding: 20px; color: #333;">
             <div style="text-align: center; margin-bottom: 30px;">
-              <h1 style="color: #27ae60; margin: 0;">QUITTANCE DE LOYER</h1>
-              <p style="color: #7f8c8d; font-size: 14px;">Gestion Locative</p>
+              <h1 style="color: #2c3e50; margin: 0; font-size: 24px;">QUITTANCE DE LOYER</h1>
+              <p style="color: #7f8c8d; font-size: 16px; margin: 10px 0;">{{mois_annee}}</p>
             </div>
-            <div style="background-color: #d4edda; padding: 20px; border-left: 4px solid #27ae60; margin: 20px 0;">
-              <h3 style="color: #27ae60; margin-top: 0;">Paiement reçu avec succès</h3>
-              <p>Nous accusons réception de votre paiement pour la période de <strong>{{periode}}</strong>.</p>
+            
+            <div style="display: flex; justify-content: space-between; margin: 30px 0;">
+              <div style="flex: 1; margin-right: 20px;">
+                <h3 style="color: #2c3e50; margin: 0 0 10px 0; border-bottom: 2px solid #3498db; padding-bottom: 5px;">Propriétaire(s):</h3>
+                <p style="margin: 5px 0; line-height: 1.4;">
+                  {{proprietaire_nom_complet}}<br>
+                  {{proprietaire_adresse}}<br>
+                  {{proprietaire_code_postal}} {{proprietaire_ville}}
+                </p>
+              </div>
+              <div style="flex: 1;">
+                <h3 style="color: #2c3e50; margin: 0 0 10px 0; border-bottom: 2px solid #3498db; padding-bottom: 5px;">Adresse de la location:</h3>
+                <p style="margin: 5px 0; line-height: 1.4;">
+                  {{bien_adresse}}<br>
+                  {{bien_code_postal}} {{bien_ville}}
+                </p>
+              </div>
             </div>
-            <table style="width: 100%; border-collapse: collapse; margin: 10px 0;">
-              <tr>
-                <td style="padding: 10px; border: 1px solid #ddd;"><strong>Locataire</strong></td>
-                <td style="padding: 10px; border: 1px solid #ddd;">{{locataire_prenom}} {{locataire_nom}}</td>
-              </tr>
-              <tr>
-                <td style="padding: 10px; border: 1px solid #ddd;"><strong>Montant</strong></td>
-                <td style="padding: 10px; border: 1px solid #ddd;"><strong>{{loyer_montant}} €</strong></td>
-              </tr>
-            </table>
+
+            <div style="margin: 30px 0; padding: 20px; background-color: #f8f9fa; border-left: 4px solid #3498db;">
+              <p style="margin: 0; line-height: 1.6;">
+                Nous, soussignés, <strong>{{proprietaire_nom_complet}}</strong>, propriétaires du logement désigné ci-dessus, 
+                déclarons avoir reçu de <strong>{{locataire_nom_complet}}</strong>, la somme de <strong>{{total_quittance}} €</strong> 
+                au titre du paiement du loyer pour la période de location de <strong>{{mois_annee}}</strong> et leur en donnons quittance 
+                ainsi que la provision sur charge de <strong>{{charges_montant}} €</strong>, sous réserve de tous nos droits.
+              </p>
+            </div>
+
+            <div style="margin: 30px 0;">
+              <h3 style="color: #2c3e50; margin: 0 0 15px 0; border-bottom: 2px solid #27ae60; padding-bottom: 5px;">Détail du règlement:</h3>
+              <table style="width: 100%; border-collapse: collapse; margin: 10px 0;">
+                <tr>
+                  <td style="padding: 12px; border: 1px solid #bdc3c7; background-color: #ecf0f1; font-weight: bold;">Loyer:</td>
+                  <td style="padding: 12px; border: 1px solid #bdc3c7; text-align: right;"><strong>{{loyer_hors_charges}} €</strong></td>
+                </tr>
+                <tr>
+                  <td style="padding: 12px; border: 1px solid #bdc3c7; background-color: #ecf0f1; font-weight: bold;">Provision sur charge:</td>
+                  <td style="padding: 12px; border: 1px solid #bdc3c7; text-align: right;"><strong>{{charges_montant}} €</strong></td>
+                </tr>
+                <tr style="background-color: #d5f4e6;">
+                  <td style="padding: 12px; border: 2px solid #27ae60; font-weight: bold; font-size: 16px;">Total:</td>
+                  <td style="padding: 12px; border: 2px solid #27ae60; text-align: right; font-weight: bold; font-size: 16px;">{{total_quittance}} €</td>
+                </tr>
+              </table>
+            </div>
+
+            <div style="margin: 30px 0;">
+              <p style="margin: 10px 0;"><strong>Date du paiement:</strong> {{date_paiement}}</p>
+              <p style="margin: 10px 0;">À {{lieu_etablissement}}, le {{date_etablissement}}</p>
+              <div style="margin-top: 40px; text-align: right;">
+                <p style="margin: 0;"><strong>Signature:</strong></p>
+                <div style="height: 60px; margin-top: 10px;"></div>
+              </div>
+            </div>
           </div>
         `,
         type: 'QUITTANCE',
         variables: JSON.stringify([
-          'locataire_nom', 'locataire_prenom', 'bien_adresse', 'bien_ville', 
-          'bien_codePostal', 'periode', 'loyer_montant', 'date_paiement'
+          'locataire_nom', 'locataire_prenom', 'locataire_nom_complet', 
+          'bien_adresse', 'bien_ville', 'bien_code_postal', 
+          'proprietaire_nom_complet', 'proprietaire_adresse', 'proprietaire_ville', 'proprietaire_code_postal',
+          'mois_annee', 'loyer_hors_charges', 'charges_montant', 'total_quittance',
+          'date_paiement', 'date_etablissement', 'lieu_etablissement'
         ]),
         actif: true
       },

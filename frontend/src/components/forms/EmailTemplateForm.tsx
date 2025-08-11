@@ -89,8 +89,11 @@ const EmailTemplateForm: React.FC<EmailTemplateFormProps> = ({
       'message_personnalise'
     ],
     QUITTANCE: [
-      'locataire_nom', 'locataire_prenom', 'bien_adresse', 'bien_ville',
-      'loyer_montant', 'periode', 'date_paiement'
+      'locataire_nom', 'locataire_prenom', 'locataire_nom_complet', 
+      'bien_adresse', 'bien_ville', 'bien_code_postal', 
+      'proprietaire_nom_complet', 'proprietaire_adresse', 'proprietaire_ville', 'proprietaire_code_postal',
+      'mois_annee', 'loyer_hors_charges', 'charges_montant', 'total_quittance',
+      'date_paiement', 'date_etablissement', 'lieu_etablissement'
     ],
     BIENVENUE: [
       'locataire_nom', 'locataire_prenom', 'bien_adresse', 'bien_ville',
@@ -116,20 +119,32 @@ Cordialement,
 L'équipe de gestion`
     },
     QUITTANCE: {
-      sujet: 'Quittance de loyer - {{periode}} - {{bien_adresse}}',
-      contenu: `Madame, Monsieur {{locataire_nom}},
+      sujet: 'Quittance de loyer - {{mois_annee}} - {{bien_adresse}}',
+      contenu: `QUITTANCE DE LOYER
+{{mois_annee}}
 
-Nous accusons réception de votre paiement de loyer pour la période de {{periode}}.
+Propriétaire(s): {{proprietaire_nom_complet}}
+{{proprietaire_adresse}}
+{{proprietaire_code_postal}} {{proprietaire_ville}}
 
-Détails :
-- Locataire : {{locataire_prenom}} {{locataire_nom}}
-- Bien : {{bien_adresse}}, {{bien_ville}}
-- Période : {{periode}}
-- Montant : {{loyer_montant}}€
-- Date de paiement : {{date_paiement}}
+Adresse de la location:
+{{bien_adresse}}
+{{bien_code_postal}} {{bien_ville}}
 
-Cordialement,
-L'équipe de gestion`
+Nous, soussignés, {{proprietaire_nom_complet}}, propriétaires du logement désigné ci-dessus, 
+déclarons avoir reçu de {{locataire_nom_complet}}, la somme de {{total_quittance}} € 
+au titre du paiement du loyer pour la période de {{mois_annee}} et leur en donnons quittance 
+ainsi que la provision sur charge de {{charges_montant}} €, sous réserve de tous nos droits.
+
+Détail du règlement:
+Loyer : {{loyer_hors_charges}} €
+Provision sur charge : {{charges_montant}} €
+Total : {{total_quittance}} €
+
+Date du paiement : {{date_paiement}}
+À {{lieu_etablissement}}, le {{date_etablissement}}
+
+Signature:`
     },
     RELANCE: {
       sujet: 'RELANCE - Loyer impayé - {{bien_adresse}}',
@@ -254,6 +269,18 @@ L'équipe de gestion`
       date_limite: '15/02/2025',
       date_entree: '01/02/2025',
       proprietaire_nom: 'Société ABC',
+      proprietaire_nom_complet: 'Mlle FOUQUET Katy et Mr SCOHY Grégory',
+      proprietaire_adresse: '17 rue Jean-Jacques Rousseau',
+      proprietaire_ville: 'Ligny-En-Cambrésis',
+      proprietaire_code_postal: '59191',
+      locataire_nom_complet: 'GROSSEMY KEVIN',
+      bien_code_postal: '75001',
+      mois_annee: 'avril 2025',
+      loyer_hors_charges: '550,00',
+      charges_montant: '10,00', 
+      total_quittance: '560,00',
+      date_etablissement: '11/08/2025',
+      lieu_etablissement: 'Ligny en cambrésis',
       message_personnalise: 'Voici votre message personnalisé.',
     };
 
