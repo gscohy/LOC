@@ -52,65 +52,23 @@ const pretSchema = z.object({
 });
 
 // @route   GET /api/prets
-// @desc    Get all loans (with debug info)
+// @desc    Get all loans - TEMPORARY: Return empty response to prevent crash
 // @access  Private
 router.get('/', asyncHandler(async (req: AuthenticatedRequest, res) => {
-  try {
-    // Debug: Check if tables exist
-    const tables = await prisma.$queryRaw`
-      SELECT table_name FROM information_schema.tables 
-      WHERE table_schema = 'public' 
-      AND table_name IN ('PretImmobilier', 'EcheancePret');
-    `;
-
-    // Try to access the model
-    const prets = await prisma.pretImmobilier.findMany({
-      take: 10,
-      include: {
-        bien: {
-          select: {
-            id: true,
-            adresse: true,
-            ville: true,
-          },
-        },
-        _count: {
-          select: {
-            echeances: true,
-          },
-        },
+  // Temporary fix: return empty list instead of trying to access non-existent tables
+  res.json({
+    success: true,
+    data: {
+      prets: [],
+      pagination: {
+        page: 1,
+        limit: 10,
+        total: 0,
+        pages: 0,
       },
-    });
-
-    res.json({
-      success: true,
-      debug: {
-        tablesFound: tables,
-        prismaWorking: true,
-        pretsCount: prets.length,
-      },
-      data: {
-        prets,
-        pagination: {
-          page: 1,
-          limit: 10,
-          total: prets.length,
-          pages: 1,
-        },
-      },
-    });
-
-  } catch (error: any) {
-    res.status(400).json({
-      success: false,
-      error: {
-        message: 'Debug info',
-        originalError: error.message,
-        code: error.code,
-        meta: error.meta,
-      },
-    });
-  }
+    },
+    message: "Tables de prêts non créées - veuillez exécuter les CREATE TABLE manuellement"
+  });
 }));
 
 // @route   GET /api/prets/:id
