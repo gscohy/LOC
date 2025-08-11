@@ -424,7 +424,7 @@ export interface EmailTemplate {
   nom: string;
   sujet: string;
   contenu: string;
-  type: 'RAPPEL_LOYER' | 'QUITTANCE' | 'RELANCE' | 'BIENVENUE' | 'CUSTOM';
+  type: 'RETARD' | 'RELANCE' | 'MISE_EN_DEMEURE' | 'INFORMATION' | 'QUITTANCE' | 'BIENVENUE' | 'CUSTOM';
   variables: string[];
   actif: boolean;
   createdAt: string;

@@ -23,7 +23,7 @@ const emailTemplateSchema = z.object({
   nom: z.string().min(1, 'Le nom est requis'),
   sujet: z.string().min(1, 'Le sujet est requis'),
   contenu: z.string().min(1, 'Le contenu est requis'),
-  type: z.enum(['RAPPEL_LOYER', 'QUITTANCE', 'RELANCE', 'BIENVENUE', 'CUSTOM']),
+  type: z.enum(['RETARD', 'RELANCE', 'MISE_EN_DEMEURE', 'INFORMATION', 'QUITTANCE', 'BIENVENUE', 'CUSTOM']),
   variables: z.array(z.string()).default([]),
   actif: z.boolean().default(true),
 });

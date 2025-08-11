@@ -201,7 +201,7 @@ async function main() {
             </div>
           </div>
         `,
-        type: 'RAPPEL_LOYER',
+        type: 'RETARD',
         variables: JSON.stringify([
           'locataire_nom', 'locataire_prenom', 'bien_adresse', 'bien_ville', 
           'bien_codePostal', 'periode', 'montant_du', 'nb_jours_retard'
@@ -241,12 +241,12 @@ async function main() {
         actif: true
       },
       {
-        nom: 'Relance en cas de non-paiement',
-        sujet: 'RELANCE URGENTE - Loyer impayé depuis {{nb_jours_retard}} jours - {{bien_adresse}}',
+        nom: 'Relance en cas de non-paiement', 
+        sujet: 'RELANCE - Loyer impayé depuis {{nb_jours_retard}} jours - {{bien_adresse}}',
         contenu: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
             <div style="text-align: center; margin-bottom: 30px;">
-              <h1 style="color: #dc3545; margin: 0;">RELANCE URGENTE</h1>
+              <h1 style="color: #dc3545; margin: 0;">RELANCE</h1>
             </div>
             <div style="background-color: #f8d7da; padding: 20px; border-left: 4px solid #dc3545; margin: 20px 0;">
               <h3 style="color: #dc3545; margin-top: 0;">⚠️ Situation préoccupante</h3>
@@ -266,6 +266,66 @@ async function main() {
         variables: JSON.stringify([
           'locataire_nom', 'locataire_prenom', 'bien_adresse', 'bien_ville', 
           'bien_codePostal', 'montant_du', 'nb_jours_retard', 'date_limite'
+        ]),
+        actif: true
+      },
+      {
+        nom: 'Mise en demeure',
+        sujet: 'MISE EN DEMEURE - Loyer impayé depuis {{nb_jours_retard}} jours - {{bien_adresse}}',
+        contenu: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
+            <div style="text-align: center; margin-bottom: 30px;">
+              <h1 style="color: #dc3545; margin: 0;">MISE EN DEMEURE</h1>
+            </div>
+            <div style="background-color: #f8d7da; padding: 20px; border-left: 4px solid #dc3545; margin: 20px 0;">
+              <h3 style="color: #dc3545; margin-top: 0;">⚠️ DERNIER AVERTISSEMENT</h3>
+              <p>Nous vous mettons en demeure de régler immédiatement le loyer impayé.</p>
+              <p><strong>À défaut de paiement sous 8 jours, nous engagerons des poursuites judiciaires.</strong></p>
+            </div>
+            <div style="margin: 20px 0;">
+              <ul style="list-style: none; padding: 0;">
+                <li><strong>Locataire :</strong> {{locataire_prenom}} {{locataire_nom}}</li>
+                <li style="color: #dc3545;"><strong>Montant dû :</strong> {{montant_du}} €</li>
+                <li><strong>Période :</strong> {{periode}}</li>
+                <li><strong>Retard :</strong> {{nb_jours_retard}} jours</li>
+              </ul>
+            </div>
+          </div>
+        `,
+        type: 'MISE_EN_DEMEURE',
+        variables: JSON.stringify([
+          'locataire_nom', 'locataire_prenom', 'bien_adresse', 'bien_ville', 
+          'bien_codePostal', 'periode', 'montant_du', 'nb_jours_retard'
+        ]),
+        actif: true
+      },
+      {
+        nom: 'Information générale',
+        sujet: 'Information concernant votre logement - {{bien_adresse}}',
+        contenu: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
+            <div style="text-align: center; margin-bottom: 30px;">
+              <h1 style="color: #17a2b8; margin: 0;">INFORMATION</h1>
+            </div>
+            <div style="background-color: #d1ecf1; padding: 20px; border-left: 4px solid #17a2b8; margin: 20px 0;">
+              <h3 style="color: #17a2b8; margin-top: 0;">📋 Information importante</h3>
+              <p>Nous souhaitons vous informer concernant votre logement.</p>
+            </div>
+            <div style="margin: 20px 0;">
+              <ul style="list-style: none; padding: 0;">
+                <li><strong>Locataire :</strong> {{locataire_prenom}} {{locataire_nom}}</li>
+                <li><strong>Adresse :</strong> {{bien_adresse}}, {{bien_ville}} {{bien_codePostal}}</li>
+              </ul>
+            </div>
+            <div style="margin: 20px 0;">
+              <p>{{message_personnalise}}</p>
+            </div>
+          </div>
+        `,
+        type: 'INFORMATION',
+        variables: JSON.stringify([
+          'locataire_nom', 'locataire_prenom', 'bien_adresse', 'bien_ville', 
+          'bien_codePostal', 'message_personnalise'
         ]),
         actif: true
       },

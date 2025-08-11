@@ -16,7 +16,7 @@ const emailTemplateSchema = z.object({
   nom: z.string().min(1, 'Le nom est requis'),
   sujet: z.string().min(1, 'Le sujet est requis'),
   contenu: z.string().min(1, 'Le contenu est requis'),
-  type: z.enum(['RAPPEL_LOYER', 'QUITTANCE', 'RELANCE', 'BIENVENUE', 'CUSTOM']),
+  type: z.enum(['RETARD', 'RELANCE', 'MISE_EN_DEMEURE', 'INFORMATION', 'QUITTANCE', 'BIENVENUE', 'CUSTOM']),
   variables: z.array(z.string()).default([]),
   actif: z.boolean().default(true),
 });
@@ -72,17 +72,25 @@ const EmailTemplateForm: React.FC<EmailTemplateFormProps> = ({
 
   // Variables prédéfinies selon le type
   const predefinedVariables: { [key: string]: string[] } = {
-    RAPPEL_LOYER: [
+    RETARD: [
       'locataire_nom', 'locataire_prenom', 'bien_adresse', 'bien_ville',
       'loyer_montant', 'periode', 'montant_du', 'nb_jours_retard'
-    ],
-    QUITTANCE: [
-      'locataire_nom', 'locataire_prenom', 'bien_adresse', 'bien_ville',
-      'loyer_montant', 'periode', 'date_paiement'
     ],
     RELANCE: [
       'locataire_nom', 'locataire_prenom', 'bien_adresse', 'bien_ville',
       'montant_du', 'nb_jours_retard', 'date_limite'
+    ],
+    MISE_EN_DEMEURE: [
+      'locataire_nom', 'locataire_prenom', 'bien_adresse', 'bien_ville',
+      'montant_du', 'nb_jours_retard', 'periode'
+    ],
+    INFORMATION: [
+      'locataire_nom', 'locataire_prenom', 'bien_adresse', 'bien_ville',
+      'message_personnalise'
+    ],
+    QUITTANCE: [
+      'locataire_nom', 'locataire_prenom', 'bien_adresse', 'bien_ville',
+      'loyer_montant', 'periode', 'date_paiement'
     ],
     BIENVENUE: [
       'locataire_nom', 'locataire_prenom', 'bien_adresse', 'bien_ville',
@@ -93,8 +101,8 @@ const EmailTemplateForm: React.FC<EmailTemplateFormProps> = ({
 
   // Templates prédéfinis
   const predefinedTemplates: { [key: string]: { sujet: string; contenu: string } } = {
-    RAPPEL_LOYER: {
-      sujet: 'Rappel de loyer - {{periode}} - {{bien_adresse}}',
+    RETARD: {
+      sujet: 'Rappel de paiement - {{periode}} - {{bien_adresse}}',
       contenu: `Bonjour {{locataire_prenom}} {{locataire_nom}},
 
 Nous vous informons que votre loyer de {{periode}} d'un montant de {{loyer_montant}}€ pour le logement situé {{bien_adresse}} à {{bien_ville}} n'a pas été réglé.
@@ -133,10 +141,40 @@ Montant dû : {{montant_du}}€
 Retard : {{nb_jours_retard}} jours
 Date limite de paiement : {{date_limite}}
 
-Nous vous mettons en demeure de procéder au règlement immédiatement, faute de quoi nous pourrions être contraints d'engager une procédure judiciaire.
+Nous vous demandons de procéder au règlement dans les plus brefs délais.
 
 Bien : {{bien_adresse}}, {{bien_ville}}
 
+L'équipe de gestion`
+    },
+    MISE_EN_DEMEURE: {
+      sujet: 'MISE EN DEMEURE - Loyer impayé - {{bien_adresse}}',
+      contenu: `MISE EN DEMEURE
+
+{{locataire_prenom}} {{locataire_nom}},
+
+Nous vous mettons en demeure de régler immédiatement le loyer impayé de {{periode}}.
+
+Montant dû : {{montant_du}}€
+Retard : {{nb_jours_retard}} jours
+
+À défaut de paiement sous 8 jours, nous engagerons sans autre préavis les poursuites judiciaires nécessaires.
+
+Bien : {{bien_adresse}}, {{bien_ville}}
+
+L'équipe de gestion`
+    },
+    INFORMATION: {
+      sujet: 'Information concernant votre logement - {{bien_adresse}}',
+      contenu: `Cher(e) {{locataire_prenom}} {{locataire_nom}},
+
+Nous souhaitons vous informer concernant votre logement situé {{bien_adresse}}, {{bien_ville}}.
+
+{{message_personnalise}}
+
+Nous restons à votre disposition pour toute question.
+
+Cordialement,
 L'équipe de gestion`
     },
     BIENVENUE: {
@@ -193,9 +231,11 @@ L'équipe de gestion`
   };
 
   const typeOptions = [
-    { value: 'RAPPEL_LOYER', label: 'Rappel de loyer' },
-    { value: 'QUITTANCE', label: 'Quittance' },
+    { value: 'RETARD', label: 'Rappel de retard' },
     { value: 'RELANCE', label: 'Relance' },
+    { value: 'MISE_EN_DEMEURE', label: 'Mise en demeure' },
+    { value: 'INFORMATION', label: 'Information' },
+    { value: 'QUITTANCE', label: 'Quittance' },
     { value: 'BIENVENUE', label: 'Bienvenue' },
     { value: 'CUSTOM', label: 'Personnalisé' },
   ];
@@ -214,6 +254,7 @@ L'équipe de gestion`
       date_limite: '15/02/2025',
       date_entree: '01/02/2025',
       proprietaire_nom: 'Société ABC',
+      message_personnalise: 'Voici votre message personnalisé.',
     };
 
     let previewSujet = watchedSujet;

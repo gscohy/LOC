@@ -371,7 +371,7 @@ model EmailTemplate {
   nom       String
   sujet     String
   contenu   String   // HTML content
-  type      String   // RAPPEL_LOYER, QUITTANCE, RELANCE, BIENVENUE, CUSTOM
+  type      String   // RETARD, RELANCE, MISE_EN_DEMEURE, INFORMATION, QUITTANCE, BIENVENUE, CUSTOM
   variables String?  // JSON array of available variables
   actif     Boolean  @default(true)
   createdAt DateTime @default(now())

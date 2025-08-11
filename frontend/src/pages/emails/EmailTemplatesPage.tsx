@@ -129,9 +129,11 @@ const EmailTemplatesPage: React.FC = () => {
 
   const getTypeBadgeColor = (type: string) => {
     switch (type) {
-      case 'RAPPEL_LOYER': return 'warning';
-      case 'QUITTANCE': return 'success';
+      case 'RETARD': return 'warning';
       case 'RELANCE': return 'danger';
+      case 'MISE_EN_DEMEURE': return 'danger';
+      case 'INFORMATION': return 'info';
+      case 'QUITTANCE': return 'success';
       case 'BIENVENUE': return 'info';
       case 'CUSTOM': return 'gray';
       default: return 'gray';
@@ -140,9 +142,11 @@ const EmailTemplatesPage: React.FC = () => {
 
   const getTypeIcon = (type: string) => {
     switch (type) {
-      case 'RAPPEL_LOYER': return <AlertTriangle className="h-4 w-4" />;
-      case 'QUITTANCE': return <FileText className="h-4 w-4" />;
+      case 'RETARD': return <AlertTriangle className="h-4 w-4" />;
       case 'RELANCE': return <MessageSquare className="h-4 w-4" />;
+      case 'MISE_EN_DEMEURE': return <AlertTriangle className="h-4 w-4" />;
+      case 'INFORMATION': return <FileText className="h-4 w-4" />;
+      case 'QUITTANCE': return <FileText className="h-4 w-4" />;
       case 'BIENVENUE': return <User className="h-4 w-4" />;
       case 'CUSTOM': return <Star className="h-4 w-4" />;
       default: return <Mail className="h-4 w-4" />;
@@ -151,9 +155,11 @@ const EmailTemplatesPage: React.FC = () => {
 
   const getTypeLabel = (type: string) => {
     switch (type) {
-      case 'RAPPEL_LOYER': return 'Rappel de loyer';
-      case 'QUITTANCE': return 'Quittance';
+      case 'RETARD': return 'Rappel de retard';
       case 'RELANCE': return 'Relance';
+      case 'MISE_EN_DEMEURE': return 'Mise en demeure';
+      case 'INFORMATION': return 'Information';
+      case 'QUITTANCE': return 'Quittance';
       case 'BIENVENUE': return 'Bienvenue';
       case 'CUSTOM': return 'Personnalisé';
       default: return type;
@@ -162,9 +168,11 @@ const EmailTemplatesPage: React.FC = () => {
 
   const typeOptions = [
     { value: '', label: 'Tous les types' },
-    { value: 'RAPPEL_LOYER', label: 'Rappel de loyer' },
-    { value: 'QUITTANCE', label: 'Quittance' },
+    { value: 'RETARD', label: 'Rappel de retard' },
     { value: 'RELANCE', label: 'Relance' },
+    { value: 'MISE_EN_DEMEURE', label: 'Mise en demeure' },
+    { value: 'INFORMATION', label: 'Information' },
+    { value: 'QUITTANCE', label: 'Quittance' },
     { value: 'BIENVENUE', label: 'Bienvenue' },
     { value: 'CUSTOM', label: 'Personnalisé' },
   ];
