@@ -19,7 +19,9 @@
     "migrate:verify": "node migrate-to-postgresql.js --verify",
     "test:postgres": "node test-postgresql.js",
     "setup:database": "node choose-database-provider.js",
-    "import:paiements": "node import-paiements-excel.js"
+    "import:paiements": "node import-paiements-excel.js",
+    "deploy:db": "node deploy-db.js",
+    "postbuild": "node deploy-db.js"
   },
   "dependencies": {
     "@prisma/client": "^5.7.1",
