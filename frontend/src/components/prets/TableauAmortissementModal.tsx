@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 
 import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
+import ErrorBoundary from '@/components/ui/ErrorBoundary';
 import { pretsService, PretImmobilier, EcheancePret } from '@/services/prets';
 
 interface TableauAmortissementModalProps {
@@ -46,18 +47,38 @@ const TableauAmortissementModal: React.FC<TableauAmortissementModalProps> = ({
   const uploadMutation = useMutation(
     (file: File) => {
       if (!pret) throw new Error('Aucun prêt sélectionné');
+      console.log('🔄 Upload du fichier:', file.name, file.size, 'bytes');
       return pretsService.uploadTableau(pret.id, file);
     },
     {
       onSuccess: (data) => {
-        toast.success(data.message);
+        console.log('✅ Upload réussi:', data);
+        toast.success(data.message || 'Fichier importé avec succès');
         setSelectedFile(null);
         if (fileInputRef.current) fileInputRef.current.value = '';
         refetch();
         onSuccess();
       },
       onError: (error: any) => {
-        toast.error(error?.response?.data?.error || 'Erreur lors de l\'upload');
+        console.error('❌ Erreur upload:', error);
+        
+        // Gestion spécifique des erreurs
+        if (error?.response?.status === 500) {
+          const message = error?.response?.data?.error?.message;
+          if (message && message.includes('Tables de prêts non créées')) {
+            toast.error('Tables de prêts non créées en base de données');
+          } else {
+            toast.error('Erreur serveur lors de l\'import du fichier');
+          }
+        } else if (error?.response?.data?.error?.message) {
+          toast.error(error.response.data.error.message);
+        } else if (error?.response?.data?.error) {
+          toast.error(error.response.data.error);
+        } else if (error?.message) {
+          toast.error(error.message);
+        } else {
+          toast.error('Erreur lors de l\'upload du fichier');
+        }
       },
     }
   );
@@ -79,6 +100,13 @@ const TableauAmortissementModal: React.FC<TableauAmortissementModalProps> = ({
       toast.error('Veuillez sélectionner un fichier');
       return;
     }
+    
+    console.log('🚀 Démarrage upload:', {
+      fileName: selectedFile.name,
+      fileSize: selectedFile.size,
+      pretId: pret?.id
+    });
+    
     uploadMutation.mutate(selectedFile);
   };
 
@@ -144,7 +172,8 @@ const TableauAmortissementModal: React.FC<TableauAmortissementModalProps> = ({
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="xl">
-      <div className="flex items-center justify-between p-6 border-b border-gray-200">
+      <ErrorBoundary>
+        <div className="flex items-center justify-between p-6 border-b border-gray-200">
         <div className="flex items-center">
           <FileText className="h-6 w-6 text-blue-600 mr-3" />
           <div>
@@ -380,6 +409,7 @@ const TableauAmortissementModal: React.FC<TableauAmortissementModalProps> = ({
           Fermer
         </Button>
       </div>
+      </ErrorBoundary>
     </Modal>
   );
 };

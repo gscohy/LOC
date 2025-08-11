@@ -13,7 +13,15 @@ const router = express.Router();
 // Configuration multer pour l'upload de fichiers
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'uploads/');
+    const uploadPath = 'uploads/';
+    // Créer le dossier s'il n'existe pas
+    import('fs').then(fs => {
+      if (!fs.existsSync(uploadPath)) {
+        fs.mkdirSync(uploadPath, { recursive: true });
+        console.log('📁 Dossier uploads créé');
+      }
+    });
+    cb(null, uploadPath);
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
@@ -272,27 +280,36 @@ router.post('/', asyncHandler(async (req: AuthenticatedRequest, res) => {
 // @desc    Upload and parse Excel amortization schedule
 // @access  Private
 router.post('/:id/upload-tableau', upload.single('tableau'), asyncHandler(async (req: AuthenticatedRequest, res) => {
+  console.log('🔄 Upload tableau - Début:', {
+    params: req.params,
+    file: req.file ? { name: req.file.originalname, size: req.file.size } : 'No file'
+  });
+
   if (!req.file) {
     throw createError('Fichier Excel requis', 400);
   }
 
-  // Vérifier que le prêt existe
-  const pret = await prisma.pretImmobilier.findUnique({
-    where: { id: req.params.id },
-  });
-
-  if (!pret) {
-    throw createError('Prêt non trouvé', 404);
-  }
-
   try {
+    // Vérifier que le prêt existe
+    const pret = await prisma.pretImmobilier.findUnique({
+      where: { id: req.params.id },
+    });
+
+    if (!pret) {
+      throw createError('Prêt non trouvé', 404);
+    }
+
     // Lire le fichier Excel
+    console.log('📄 Lecture du fichier Excel:', req.file.path);
     const workbook = XLSX.readFile(req.file.path);
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
     
+    console.log('📊 Feuille Excel:', sheetName);
+    
     // Convertir en JSON
     const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+    console.log('📋 Données JSON extraites:', jsonData.length, 'lignes');
     
     // Parser les données selon le format fourni
     const echeances = [];
@@ -350,6 +367,8 @@ router.post('/:id/upload-tableau', upload.single('tableau'), asyncHandler(async 
       throw createError('Aucune échéance valide trouvée dans le fichier', 400);
     }
     
+    console.log('💾 Sauvegarde des échéances:', echeances.length, 'échéances');
+    
     // Supprimer les anciennes échéances s'il y en a
     await prisma.echeancePret.deleteMany({
       where: { pretId: pret.id },
@@ -373,6 +392,8 @@ router.post('/:id/upload-tableau', upload.single('tableau'), asyncHandler(async 
     const fs = await import('fs');
     fs.unlinkSync(req.file.path);
     
+    console.log('✅ Upload terminé avec succès');
+    
     res.json({
       success: true,
       message: `Tableau d'amortissement importé avec succès`,
@@ -383,6 +404,8 @@ router.post('/:id/upload-tableau', upload.single('tableau'), asyncHandler(async 
     });
     
   } catch (error: any) {
+    console.error('❌ Erreur lors de l\'upload:', error);
+    
     // Supprimer le fichier temporaire en cas d'erreur
     try {
       const fs = await import('fs');
@@ -392,6 +415,22 @@ router.post('/:id/upload-tableau', upload.single('tableau'), asyncHandler(async 
     }
     
     throw createError('Erreur lors du traitement du fichier Excel: ' + error.message, 400);
+  }
+  } catch (error: any) {
+    // Gestion globale des erreurs (tables manquantes, etc.)
+    console.error('❌ Erreur globale upload:', error);
+    
+    if (error.code === 'P2021' || error.message?.includes('does not exist')) {
+      res.status(500).json({
+        success: false,
+        error: { 
+          message: "Tables de prêts non créées - veuillez exécuter les CREATE TABLE manuellement" 
+        },
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      throw error;
+    }
   }
 }));
 
