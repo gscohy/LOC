@@ -155,7 +155,7 @@ const PretModal: React.FC<PretModalProps> = ({ isOpen, onClose, pret, onSuccess 
 
   const biensOptions = [
     { value: '', label: 'Sélectionner un bien' },
-    ...(biensData?.data?.biens?.map((bien: any) => ({
+    ...(biensData?.data?.map((bien: any) => ({
       value: bien.id,
       label: `${bien.adresse}, ${bien.ville}`
     })) || [])
