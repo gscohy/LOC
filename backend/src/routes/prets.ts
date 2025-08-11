@@ -301,14 +301,24 @@ router.post('/:id/upload-tableau', upload.single('tableau'), asyncHandler(async 
 
     // Lire le fichier Excel
     console.log('📄 Lecture du fichier Excel:', req.file.path);
-    const workbook = XLSX.readFile(req.file.path);
+    console.log('📚 XLSX disponible:', typeof XLSX, Object.keys(XLSX));
+    
+    // Dynamic import si nécessaire
+    let xlsxLib = XLSX;
+    if (!XLSX.readFile) {
+      console.log('🔄 Tentative dynamic import de XLSX...');
+      xlsxLib = await import('xlsx');
+      console.log('📚 XLSX dynamic:', typeof xlsxLib, Object.keys(xlsxLib));
+    }
+    
+    const workbook = xlsxLib.readFile(req.file.path);
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
     
     console.log('📊 Feuille Excel:', sheetName);
     
     // Convertir en JSON
-    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+    const jsonData = xlsxLib.utils.sheet_to_json(worksheet, { header: 1 });
     console.log('📋 Données JSON extraites:', jsonData.length, 'lignes');
     
     // Parser les données selon le format fourni
