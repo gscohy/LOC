@@ -49,6 +49,7 @@ interface PretModalProps {
 
 const PretModal: React.FC<PretModalProps> = ({ isOpen, onClose, pret, onSuccess }) => {
   const isEditing = Boolean(pret);
+  const [isFormReady, setIsFormReady] = React.useState(false);
 
   const {
     register,
@@ -101,6 +102,7 @@ const PretModal: React.FC<PretModalProps> = ({ isOpen, onClose, pret, onSuccess 
     console.log('🔄 PretModal useEffect: isOpen=', isOpen, 'pret=', pret);
     if (isOpen && pret) {
       console.log('📝 PretModal: Mode édition, remplissage du formulaire');
+      setIsFormReady(false);
       reset({
         bienId: pret.bienId,
         nom: pret.nom,
@@ -116,12 +118,18 @@ const PretModal: React.FC<PretModalProps> = ({ isOpen, onClose, pret, onSuccess 
         statut: pret.statut,
         commentaires: pret.commentaires || '',
       });
+      // Attendre un peu avant de marquer le formulaire comme prêt
+      setTimeout(() => setIsFormReady(true), 100);
     } else if (isOpen) {
       console.log('✨ PretModal: Mode création, formulaire vide');
+      setIsFormReady(false);
       reset({
         statut: 'ACTIF',
         mensualiteAssurance: 0,
       });
+      // Ne pas marquer comme prêt en mode création jusqu'à ce que l'utilisateur interagisse
+    } else {
+      setIsFormReady(false);
     }
   }, [isOpen, pret, reset]);
 
@@ -149,6 +157,13 @@ const PretModal: React.FC<PretModalProps> = ({ isOpen, onClose, pret, onSuccess 
 
   const onSubmit = (data: FormData) => {
     console.log('🔍 PretModal: onSubmit called with:', data);
+    console.trace('📍 PretModal: Call stack for onSubmit');
+    
+    // Protection: ne pas soumettre si le formulaire n'est pas prêt
+    if (!isFormReady) {
+      console.log('❌ PretModal: Formulaire pas encore prêt, abandon de la soumission');
+      return;
+    }
     
     // Validation des données essentielles
     if (!data.bienId || !data.nom || !data.banque || !data.montantEmprunte || 
@@ -198,7 +213,7 @@ const PretModal: React.FC<PretModalProps> = ({ isOpen, onClose, pret, onSuccess 
         </button>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-6">
+      <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-6" noValidate>
         {/* Informations générales */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="md:col-span-2">
@@ -344,6 +359,7 @@ const PretModal: React.FC<PretModalProps> = ({ isOpen, onClose, pret, onSuccess 
             type="submit"
             loading={saveMutation.isLoading}
             className="min-w-[120px]"
+            onClick={() => setIsFormReady(true)}
           >
             {isEditing ? 'Mettre à jour' : 'Créer le prêt'}
           </Button>
