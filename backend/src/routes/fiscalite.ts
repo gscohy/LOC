@@ -6,6 +6,42 @@ import PDFDocument from 'pdfkit';
 
 const router = express.Router();
 
+// Fonction pour calculer les occurrences de charges récurrentes
+function generateRecurringCharges(charge: any, year: number) {
+  if (charge.type === 'PONCTUELLE') return [];
+  
+  const occurrences = [];
+  const startDate = charge.dateDebut ? new Date(charge.dateDebut) : new Date(charge.date);
+  const endDate = charge.dateFin ? new Date(charge.dateFin) : new Date(year, 11, 31);
+  const yearStart = new Date(year, 0, 1);
+  const yearEnd = new Date(year, 11, 31);
+  
+  let intervalMonths = 0;
+  switch (charge.type) {
+    case 'MENSUELLE': intervalMonths = 1; break;
+    case 'TRIMESTRIELLE': intervalMonths = 3; break;
+    case 'SEMESTRIELLE': intervalMonths = 6; break;
+    case 'ANNUELLE': intervalMonths = 12; break;
+  }
+  
+  if (intervalMonths === 0) return [];
+  
+  let currentDate = new Date(Math.max(startDate.getTime(), yearStart.getTime()));
+  
+  while (currentDate <= endDate && currentDate <= yearEnd) {
+    if (currentDate >= yearStart) {
+      occurrences.push({
+        ...charge,
+        date: new Date(currentDate),
+        montantProjecte: charge.montant
+      });
+    }
+    currentDate.setMonth(currentDate.getMonth() + intervalMonths);
+  }
+  
+  return occurrences;
+}
+
 
 // Schémas de validation
 const fiscalDataSchema = z.object({
@@ -286,20 +322,60 @@ router.post('/declaration-2044', async (req, res) => {
               where: { annee }
             }
           }
-        },
-        charges: {
-          where: {
-            date: {
-              gte: new Date(annee, 0, 1),
-              lte: new Date(annee, 11, 31)
-            }
-          }
         }
       }
     });
 
+    // Récupérer toutes les charges (ponctuelles + récurrentes) pour chaque bien
+    const biensAvecCharges = await Promise.all(biens.map(async (bien) => {
+      // Charges ponctuelles pour ce bien
+      const chargesPonctuelles = await prisma.charge.findMany({
+        where: {
+          bienId: bien.id,
+          type: 'PONCTUELLE',
+          date: {
+            gte: new Date(annee, 0, 1),
+            lte: new Date(annee, 11, 31)
+          }
+        }
+      });
+
+      // Charges récurrentes actives pour ce bien
+      const chargesRecurrentes = await prisma.charge.findMany({
+        where: {
+          bienId: bien.id,
+          type: { not: 'PONCTUELLE' },
+          OR: [
+            { dateFin: null },
+            { dateFin: { gte: new Date(annee, 0, 1) } }
+          ],
+          AND: [
+            {
+              OR: [
+                { dateDebut: null },
+                { dateDebut: { lte: new Date(annee, 11, 31) } }
+              ]
+            }
+          ]
+        }
+      });
+
+      // Générer les occurrences des charges récurrentes
+      const chargesRecurrentesProjectees = chargesRecurrentes.flatMap(charge => 
+        generateRecurringCharges(charge, annee)
+      );
+
+      // Combiner toutes les charges
+      const toutesLesCharges = [...chargesPonctuelles, ...chargesRecurrentesProjectees];
+
+      return {
+        ...bien,
+        toutesLesCharges
+      };
+    }));
+
     // Calculer les détails par bien
-    const bienDetails = biens.map(bien => {
+    const bienDetails = biensAvecCharges.map(bien => {
       const revenus = bien.contrats.reduce((sum, contrat) => 
         sum + contrat.loyers.reduce((loyerSum, loyer) => loyerSum + (loyer.montantPaye || 0), 0), 0
       );
@@ -308,7 +384,7 @@ router.post('/declaration-2044', async (req, res) => {
       let travaux = 0, fraisGestion = 0, assurances = 0, taxesFoncieres = 0, 
           interetsEmprunt = 0, reparationsEntretien = 0, ameliorations = 0, autresCharges = 0;
       
-      bien.charges.forEach(charge => {
+      bien.toutesLesCharges.forEach(charge => {
         switch (charge.categorie) {
           case 'TRAVAUX':
             travaux += charge.montant;
