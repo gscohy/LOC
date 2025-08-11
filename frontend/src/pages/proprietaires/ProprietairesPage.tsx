@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
-import { Plus, Search, Edit, Trash2, Mail, Phone, MapPin } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Mail, Phone, MapPin, FileImage } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 import { proprietairesService } from '@/services/proprietaires';
@@ -11,6 +11,7 @@ import Modal from '@/components/ui/Modal';
 import Table from '@/components/ui/Table';
 import Badge from '@/components/ui/Badge';
 import ProprietaireFormSimpleSignature from '@/components/forms/ProprietaireFormSimpleSignature';
+import SignatureUpload from '@/components/proprietaires/SignatureUpload';
 
 const ProprietairesPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -19,6 +20,8 @@ const ProprietairesPage: React.FC = () => {
   const [editingProprietaire, setEditingProprietaire] = useState<Proprietaire | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deletingProprietaire, setDeletingProprietaire] = useState<Proprietaire | null>(null);
+  const [isSignatureModalOpen, setIsSignatureModalOpen] = useState(false);
+  const [signatureProprietaire, setSignatureProprietaire] = useState<Proprietaire | null>(null);
 
   const queryClient = useQueryClient();
   const pageSize = 10;
@@ -116,6 +119,11 @@ const ProprietairesPage: React.FC = () => {
     setIsDeleteModalOpen(true);
   };
 
+  const openSignatureModal = (proprietaire: Proprietaire) => {
+    setSignatureProprietaire(proprietaire);
+    setIsSignatureModalOpen(true);
+  };
+
   const columns = [
     {
       key: 'nom',
@@ -188,6 +196,15 @@ const ProprietairesPage: React.FC = () => {
             title="Modifier"
           >
             <Edit className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => openSignatureModal(proprietaire)}
+            className="text-blue-600 hover:text-blue-700"
+            title="Gérer la signature"
+          >
+            <FileImage className="h-4 w-4" />
           </Button>
           <Button
             variant="ghost"
@@ -327,6 +344,19 @@ const ProprietairesPage: React.FC = () => {
           </div>
         </div>
       </Modal>
+
+      {/* Signature Upload Modal */}
+      {signatureProprietaire && (
+        <SignatureUpload
+          proprietaireId={signatureProprietaire.id}
+          currentSignature={signatureProprietaire.signature || undefined}
+          isOpen={isSignatureModalOpen}
+          onClose={() => {
+            setIsSignatureModalOpen(false);
+            setSignatureProprietaire(null);
+          }}
+        />
+      )}
     </div>
   );
 };

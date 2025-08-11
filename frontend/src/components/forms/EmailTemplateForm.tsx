@@ -93,7 +93,7 @@ const EmailTemplateForm: React.FC<EmailTemplateFormProps> = ({
       'bien_adresse', 'bien_ville', 'bien_code_postal', 
       'proprietaire_nom_complet', 'proprietaire_adresse', 'proprietaire_ville', 'proprietaire_code_postal',
       'mois_annee', 'loyer_hors_charges', 'charges_montant', 'total_quittance',
-      'date_paiement', 'date_etablissement', 'lieu_etablissement'
+      'date_paiement', 'date_etablissement', 'lieu_etablissement', 'signature_proprietaire'
     ],
     BIENVENUE: [
       'locataire_nom', 'locataire_prenom', 'bien_adresse', 'bien_ville',
@@ -144,7 +144,8 @@ Total : {{total_quittance}} €
 Date du paiement : {{date_paiement}}
 À {{lieu_etablissement}}, le {{date_etablissement}}
 
-Signature:`
+Signature:
+{{signature_proprietaire}}`
     },
     RELANCE: {
       sujet: 'RELANCE - Loyer impayé - {{bien_adresse}}',
@@ -281,6 +282,7 @@ L'équipe de gestion`
       total_quittance: '560,00',
       date_etablissement: '11/08/2025',
       lieu_etablissement: 'Ligny en cambrésis',
+      signature_proprietaire: 'https://via.placeholder.com/200x80/3498db/ffffff?text=Signature',
       message_personnalise: 'Voici votre message personnalisé.',
     };
 

@@ -155,6 +155,7 @@ const RappelForm: React.FC<RappelFormProps> = ({
       proprietaire_adresse: 'Adresse propriétaire', // TODO
       proprietaire_ville: 'Ville propriétaire', // TODO
       proprietaire_code_postal: 'CP propriétaire', // TODO
+      signature_proprietaire: '<img src="/api/signatures/default-signature.png" alt="Signature" style="max-height: 80px; max-width: 200px; border: 1px solid #ddd; padding: 5px;" />', // TODO: récupérer vraie signature
       
       // Variables loyer/financier
       periode: moisAnnee,

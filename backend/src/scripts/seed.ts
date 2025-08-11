@@ -267,8 +267,10 @@ async function main() {
               <p style="margin: 10px 0;"><strong>Date du paiement:</strong> {{date_paiement}}</p>
               <p style="margin: 10px 0;">À {{lieu_etablissement}}, le {{date_etablissement}}</p>
               <div style="margin-top: 40px; text-align: right;">
-                <p style="margin: 0;"><strong>Signature:</strong></p>
-                <div style="height: 60px; margin-top: 10px;"></div>
+                <p style="margin: 0 0 10px 0;"><strong>Signature:</strong></p>
+                <div style="min-height: 80px; display: inline-block;">
+                  {{signature_proprietaire}}
+                </div>
               </div>
             </div>
           </div>
@@ -279,7 +281,7 @@ async function main() {
           'bien_adresse', 'bien_ville', 'bien_code_postal', 
           'proprietaire_nom_complet', 'proprietaire_adresse', 'proprietaire_ville', 'proprietaire_code_postal',
           'mois_annee', 'loyer_hors_charges', 'charges_montant', 'total_quittance',
-          'date_paiement', 'date_etablissement', 'lieu_etablissement'
+          'date_paiement', 'date_etablissement', 'lieu_etablissement', 'signature_proprietaire'
         ]),
         actif: true
       },
