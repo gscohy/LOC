@@ -309,9 +309,23 @@ router.post('/:id/upload-tableau', upload.single('tableau'), asyncHandler(async 
       console.log('🔄 Tentative dynamic import de XLSX...');
       xlsxLib = await import('xlsx');
       console.log('📚 XLSX dynamic:', typeof xlsxLib, Object.keys(xlsxLib));
+      // Utiliser default si disponible
+      if (xlsxLib.default) {
+        xlsxLib = xlsxLib.default;
+        console.log('📚 XLSX default:', typeof xlsxLib, Object.keys(xlsxLib));
+      }
     }
     
-    const workbook = xlsxLib.readFile(req.file.path);
+    // Lire le fichier avec fs puis parser avec XLSX.read
+    let workbook;
+    if (xlsxLib.readFile) {
+      workbook = xlsxLib.readFile(req.file.path);
+    } else {
+      console.log('🔄 Utilisation de XLSX.read avec buffer...');
+      const fs = await import('fs');
+      const buffer = fs.readFileSync(req.file.path);
+      workbook = xlsxLib.read(buffer, { type: 'buffer' });
+    }
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
     
