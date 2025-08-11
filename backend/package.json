@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "npx prisma generate",
-    "build:production": "npx prisma generate && tsx src/server.ts",
-    "build:render": "npx prisma generate",
+    "build": "rm -rf node_modules/.prisma && npx prisma generate",
+    "build:production": "rm -rf node_modules/.prisma && npx prisma generate && tsx src/server.ts",
+    "build:render": "rm -rf node_modules/.prisma && npx prisma generate",
     "start": "tsx src/server.ts",
     "start:dev": "tsx src/server.ts",
     "db:generate": "prisma generate",
