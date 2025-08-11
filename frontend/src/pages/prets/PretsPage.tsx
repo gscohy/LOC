@@ -20,6 +20,7 @@ import toast from 'react-hot-toast';
 
 import Button from '@/components/ui/Button';
 import Select from '@/components/ui/Select';
+import ErrorBoundary from '@/components/ui/ErrorBoundary';
 import { pretsService, PretImmobilier } from '@/services/prets';
 import { biensService } from '@/services/biens';
 import PretModal from '@/components/prets/PretModal';
@@ -139,7 +140,8 @@ const PretsPage: React.FC = () => {
   const pagination = pretsData?.data?.pagination;
 
   return (
-    <div className="space-y-6">
+    <ErrorBoundary>
+      <div className="space-y-6">
       {/* Page header */}
       <div className="flex items-center justify-between">
         <div>
@@ -506,7 +508,8 @@ const PretsPage: React.FC = () => {
         isOpen={showFiscaliteModal}
         onClose={() => setShowFiscaliteModal(false)}
       />
-    </div>
+      </div>
+    </ErrorBoundary>
   );
 };
 

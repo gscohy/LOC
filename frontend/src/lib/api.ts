@@ -105,7 +105,8 @@ api.interceptors.response.use(
       console.warn('Ressource non trouvée:', error.config?.url);
     } else if (error.response && error.response.status >= 500) {
       console.error('🔥 Server error:', message);
-      toast.error('Erreur serveur: ' + message);
+      // Ne pas afficher de toast ici, laisser les composants gérer les erreurs 500
+      // toast.error('Erreur serveur: ' + message);
     } else if (error.code === 'NETWORK_ERROR' || !error.response) {
       console.error('🌐 Network error details:', error);
       console.error('🌐 Full error object:', error);

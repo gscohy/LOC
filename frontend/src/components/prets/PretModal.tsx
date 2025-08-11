@@ -10,6 +10,7 @@ import Modal from '@/components/ui/Modal';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
 import Button from '@/components/ui/Button';
+import ErrorBoundary from '@/components/ui/ErrorBoundary';
 import { pretsService, PretImmobilier, CreatePretData } from '@/services/prets';
 import { biensService } from '@/services/biens';
 
@@ -92,7 +93,23 @@ const PretModal: React.FC<PretModalProps> = ({ isOpen, onClose, pret, onSuccess 
         onSuccess();
       },
       onError: (error: any) => {
-        toast.error(error?.response?.data?.error || 'Erreur lors de la sauvegarde');
+        console.error('❌ PretModal: Erreur lors de la sauvegarde:', error);
+        
+        // Gestion spécifique des erreurs de base de données
+        if (error?.response?.status === 500) {
+          const message = error?.response?.data?.error?.message;
+          if (message && message.includes('Tables de prêts non créées')) {
+            toast.error('Les tables de prêts ne sont pas encore créées en base de données. Contactez l\'administrateur.');
+          } else {
+            toast.error('Erreur serveur lors de la sauvegarde');
+          }
+        } else if (error?.response?.data?.error?.message) {
+          toast.error(error.response.data.error.message);
+        } else if (error?.message) {
+          toast.error(error.message);
+        } else {
+          toast.error('Erreur lors de la sauvegarde');
+        }
       },
     }
   );
@@ -198,22 +215,23 @@ const PretModal: React.FC<PretModalProps> = ({ isOpen, onClose, pret, onSuccess 
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="lg">
-      <div className="flex items-center justify-between p-6 border-b border-gray-200">
-        <div className="flex items-center">
-          <CreditCard className="h-6 w-6 text-blue-600 mr-3" />
-          <h2 className="text-xl font-semibold text-gray-900">
-            {isEditing ? 'Modifier le Prêt' : 'Nouveau Prêt Immobilier'}
-          </h2>
+      <ErrorBoundary>
+        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+          <div className="flex items-center">
+            <CreditCard className="h-6 w-6 text-blue-600 mr-3" />
+            <h2 className="text-xl font-semibold text-gray-900">
+              {isEditing ? 'Modifier le Prêt' : 'Nouveau Prêt Immobilier'}
+            </h2>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-500"
+          >
+            <X className="h-6 w-6" />
+          </button>
         </div>
-        <button
-          onClick={onClose}
-          className="text-gray-400 hover:text-gray-500"
-        >
-          <X className="h-6 w-6" />
-        </button>
-      </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-6" noValidate>
+        <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-6" noValidate>
         {/* Informations générales */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="md:col-span-2">
@@ -364,7 +382,8 @@ const PretModal: React.FC<PretModalProps> = ({ isOpen, onClose, pret, onSuccess 
             {isEditing ? 'Mettre à jour' : 'Créer le prêt'}
           </Button>
         </div>
-      </form>
+        </form>
+      </ErrorBoundary>
     </Modal>
   );
 };
