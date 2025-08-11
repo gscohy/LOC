@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "npx prisma generate && npx prisma migrate deploy",
-    "build:production": "npx prisma generate && npx prisma migrate deploy && tsx src/server.ts",
-    "build:render": "npx prisma generate && npx prisma migrate deploy",
+    "build": "npx prisma generate",
+    "build:production": "npx prisma generate && tsx src/server.ts",
+    "build:render": "npx prisma generate",
     "start": "tsx src/server.ts",
     "start:dev": "tsx src/server.ts",
     "db:generate": "prisma generate",
@@ -19,8 +19,7 @@
     "migrate:verify": "node migrate-to-postgresql.js --verify",
     "test:postgres": "node test-postgresql.js",
     "setup:database": "node choose-database-provider.js",
-    "import:paiements": "node import-paiements-excel.js",
-    "deploy:db": "npx prisma migrate deploy"
+    "import:paiements": "node import-paiements-excel.js"
   },
   "dependencies": {
     "@prisma/client": "^5.7.1",
