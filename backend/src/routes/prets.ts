@@ -443,22 +443,11 @@ router.post('/:id/upload-tableau', upload.single('tableau'), asyncHandler(async 
       console.warn('Erreur lors de la suppression du fichier temporaire:', cleanupError);
     }
     
-    throw createError('Erreur lors du traitement du fichier Excel: ' + error.message, 400);
-  }
-  } catch (error: any) {
-    // Gestion globale des erreurs (tables manquantes, etc.)
-    console.error('❌ Erreur globale upload:', error);
-    
+    // Gestion spécifique des erreurs de base de données
     if (error.code === 'P2021' || error.message?.includes('does not exist')) {
-      res.status(500).json({
-        success: false,
-        error: { 
-          message: "Tables de prêts non créées - veuillez exécuter les CREATE TABLE manuellement" 
-        },
-        timestamp: new Date().toISOString()
-      });
+      throw createError('Tables de prêts non créées - veuillez exécuter les CREATE TABLE manuellement', 500);
     } else {
-      throw error;
+      throw createError('Erreur lors du traitement du fichier Excel: ' + error.message, 400);
     }
   }
 }));
