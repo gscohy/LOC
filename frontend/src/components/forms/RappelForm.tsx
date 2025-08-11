@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useQuery } from 'react-query';
 import { 
   Bell, 
   Calendar, 
@@ -15,6 +16,7 @@ import {
 } from 'lucide-react';
 
 import { rappelsService, RappelCreate } from '@/services/rappels';
+import { emailsService } from '@/services/emails';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
@@ -99,12 +101,69 @@ const RappelForm: React.FC<RappelFormProps> = ({
 
   const typesRappel = rappelsService.getTypesRappel();
   const modesEnvoi = rappelsService.getModesEnvoi();
+
+  // Récupérer les templates email
+  const { data: templatesData } = useQuery(
+    'email-templates-for-rappels',
+    () => emailsService.getAllTemplates({ limit: 100 }),
+    {
+      staleTime: 5 * 60 * 1000, // Cache 5 minutes
+    }
+  );
   
   // Suggérer le prochain type de rappel
   const typeSuggere = (loyer.rappels && loyer.rappels.length > 0) ? 
     (loyer.rappels.some(r => r.type === 'MISE_EN_DEMEURE') ? 'AUTRE' : 
      loyer.rappels.some(r => r.type === 'RELANCE') ? 'MISE_EN_DEMEURE' :
      loyer.rappels.some(r => r.type === 'RETARD') ? 'RELANCE' : 'RETARD') : 'RETARD';
+
+  // Fonction pour générer le message à partir des templates email
+  const generateMessageFromTemplate = useCallback((type: string) => {
+    if (!templatesData?.data || !loyer.contrat) return '';
+
+    // Trouver le template correspondant au type
+    const template = templatesData.data.find(t => t.type === type && t.actif);
+    if (!template) {
+      console.warn(`Aucun template trouvé pour le type: ${type}`);
+      return '';
+    }
+
+    // Créer les variables pour remplacer dans le template
+    const locataires = loyer.contrat.locataires
+      .map(cl => `${cl.locataire.prenom} ${cl.locataire.nom}`)
+      .join(' et ');
+    
+    const montantRestant = loyer.montantDu - loyer.montantPaye;
+    const moisAnnee = rappelsService.formatMoisAnnee(loyer.mois, loyer.annee);
+    const adresse = loyer.contrat.bien?.adresse || 'Adresse non disponible';
+
+    const variables: Record<string, string> = {
+      locataire_nom: loyer.contrat.locataires[0]?.locataire?.nom || '',
+      locataire_prenom: loyer.contrat.locataires[0]?.locataire?.prenom || '',
+      bien_adresse: adresse,
+      bien_ville: '', // TODO: récupérer ville depuis le bien si disponible
+      bien_codePostal: '', // TODO: récupérer code postal si disponible
+      periode: moisAnnee,
+      montant_du: montantRestant.toString(),
+      loyer_montant: loyer.montantDu.toString(),
+      nb_jours_retard: Math.max(0, Math.floor((Date.now() - new Date(loyer.annee, loyer.mois - 1, 5).getTime()) / (1000 * 60 * 60 * 24))).toString(),
+      date_paiement: new Date().toLocaleDateString('fr-FR'),
+      date_limite: new Date(Date.now() + 8 * 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR'),
+      message_personnalise: '[Veuillez personnaliser ce message]'
+    };
+
+    // Remplacer les variables dans le contenu du template
+    let contenu = template.contenu;
+    Object.entries(variables).forEach(([key, value]) => {
+      const placeholder = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
+      contenu = contenu.replace(placeholder, value);
+    });
+
+    // Convertir le HTML en texte simple pour le textarea
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = contenu;
+    return tempDiv.textContent || tempDiv.innerText || '';
+  }, [templatesData?.data, loyer.contrat, loyer.mois, loyer.annee, loyer.montantDu, loyer.montantPaye]);
   
   // Emails des locataires
   const emailsLocataires = (loyer.contrat && loyer.contrat.locataires) ? 
@@ -134,28 +193,15 @@ const RappelForm: React.FC<RappelFormProps> = ({
   // Surveiller les changements de type pour générer le message
   const watchedType = watch('type');
   useEffect(() => {
-    if (watchedType && watchedType !== selectedType) {
+    if (watchedType && watchedType !== selectedType && templatesData?.data) {
       setSelectedType(watchedType);
-      if (loyer.contrat) {
-        // Création d'un objet compatible avec generateDefaultMessage
-        const loyerForMessage = {
-          mois: loyer.mois,
-          annee: loyer.annee,
-          montantDu: loyer.montantDu,
-          montantPaye: loyer.montantPaye,
-          contrat: {
-            bien: {
-              adresse: loyer.contrat.bien?.adresse || 'Adresse non disponible'
-            },
-            locataires: loyer.contrat.locataires
-          }
-        };
-        const message = rappelsService.generateDefaultMessage(loyerForMessage, watchedType);
+      const message = generateMessageFromTemplate(watchedType);
+      if (message) {
         setMessageGenere(message);
         setValue('message', message, { shouldValidate: true });
       }
     }
-  }, [watchedType, loyer, setValue, selectedType]);
+  }, [watchedType, templatesData, setValue, selectedType, generateMessageFromTemplate]);
 
   const handleFormSubmit = (data: RappelFormData) => {
     onSubmit({
@@ -169,23 +215,12 @@ const RappelForm: React.FC<RappelFormProps> = ({
   };
 
   const handleMessageGenerate = () => {
-    if (selectedType && loyer.contrat) {
-      // Création d'un objet compatible avec generateDefaultMessage
-      const loyerForMessage = {
-        mois: loyer.mois,
-        annee: loyer.annee,
-        montantDu: loyer.montantDu,
-        montantPaye: loyer.montantPaye,
-        contrat: {
-          bien: {
-            adresse: loyer.contrat.bien?.adresse || 'Adresse non disponible'
-          },
-          locataires: loyer.contrat.locataires
-        }
-      };
-      const message = rappelsService.generateDefaultMessage(loyerForMessage, selectedType);
-      setMessageGenere(message);
-      setValue('message', message, { shouldValidate: true });
+    if (selectedType) {
+      const message = generateMessageFromTemplate(selectedType);
+      if (message) {
+        setMessageGenere(message);
+        setValue('message', message, { shouldValidate: true });
+      }
     }
   };
 
@@ -378,6 +413,46 @@ const RappelForm: React.FC<RappelFormProps> = ({
         </div>
       </div>
 
+      {/* Sélecteur de template */}
+      {templatesData?.data && templatesData.data.length > 0 && (
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-gray-700">
+            Template email (optionnel)
+          </label>
+          <div className="relative">
+            <FileText className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Select
+              className="pl-10"
+              onChange={(e) => {
+                const templateId = e.target.value;
+                if (templateId) {
+                  const template = templatesData.data.find(t => t.id === templateId);
+                  if (template) {
+                    const message = generateMessageFromTemplate(template.type);
+                    if (message) {
+                      setValue('message', message, { shouldValidate: true });
+                      setMessageGenere(message);
+                    }
+                  }
+                }
+              }}
+              options={[
+                { value: '', label: 'Sélectionner un template...' },
+                ...templatesData.data
+                  .filter(t => t.actif)
+                  .map(template => ({
+                    value: template.id,
+                    label: `${template.nom} (${template.type})`
+                  }))
+              ]}
+            />
+          </div>
+          <p className="text-xs text-gray-500">
+            Les templates sont basés sur ceux configurés dans la section Emails
+          </p>
+        </div>
+      )}
+
       {/* Message */}
       <div className="space-y-2">
         <label className="block text-sm font-medium text-gray-700">
@@ -394,7 +469,7 @@ const RappelForm: React.FC<RappelFormProps> = ({
           />
         </div>
         
-        {/* Bouton pour générer un message automatique */}
+        {/* Bouton pour générer un message depuis template */}
         <div className="flex items-center space-x-2">
           <Button
             type="button"
@@ -405,10 +480,10 @@ const RappelForm: React.FC<RappelFormProps> = ({
             className="flex items-center"
           >
             <FileText className="h-4 w-4 mr-2" />
-            Générer un message automatique
+            Générer depuis template
           </Button>
           {messageGenere && (
-            <span className="text-xs text-green-600">Message généré automatiquement</span>
+            <span className="text-xs text-green-600">Message généré depuis template email</span>
           )}
         </div>
       </div>
