@@ -32,7 +32,6 @@ import fiscaliteRoutes from './routes/fiscalite.js';
 import documentsRoutes from './routes/documents.js';
 import schedulerRoutes from './routes/scheduler.js';
 import pretsRoutes from './routes/prets.js';
-import debugRoutes from './routes/debug.js';
 
 // Import scheduler
 import { taskScheduler } from './services/scheduler.js';
@@ -472,7 +471,6 @@ app.use('/api/fiscalite', authMiddleware, fiscaliteRoutes);
 app.use('/api/documents', authMiddleware, documentsRoutes);
 app.use('/api/scheduler', authMiddleware, schedulerRoutes);
 app.use('/api/prets', authMiddleware, pretsRoutes);
-app.use('/api/debug', debugRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {

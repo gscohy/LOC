@@ -52,23 +52,112 @@ const pretSchema = z.object({
 });
 
 // @route   GET /api/prets
-// @desc    Get all loans - TEMPORARY: Return empty response to prevent crash
+// @desc    Get all loans
 // @access  Private
 router.get('/', asyncHandler(async (req: AuthenticatedRequest, res) => {
-  // Temporary fix: return empty list instead of trying to access non-existent tables
-  res.json({
-    success: true,
-    data: {
-      prets: [],
-      pagination: {
-        page: 1,
-        limit: 10,
-        total: 0,
-        pages: 0,
+  const {
+    page = '1',
+    limit = '10',
+    statut,
+    bienId,
+    search,
+  } = req.query;
+
+  const pageNum = parseInt(page as string);
+  const limitNum = parseInt(limit as string);
+  const skip = (pageNum - 1) * limitNum;
+
+  const where: any = {};
+
+  if (statut && statut !== '') {
+    where.statut = statut;
+  }
+
+  if (bienId && bienId !== '') {
+    where.bienId = bienId;
+  }
+
+  if (search && search !== '') {
+    where.OR = [
+      { nom: { contains: search, mode: 'insensitive' } },
+      { banque: { contains: search, mode: 'insensitive' } },
+      { numeroPret: { contains: search, mode: 'insensitive' } },
+    ];
+  }
+
+  try {
+    const [prets, total] = await Promise.all([
+      prisma.pretImmobilier.findMany({
+        where,
+        skip,
+        take: limitNum,
+        include: {
+          bien: {
+            select: {
+              id: true,
+              adresse: true,
+              ville: true,
+              codePostal: true,
+              proprietaires: {
+                include: {
+                  proprietaire: {
+                    select: {
+                      id: true,
+                      nom: true,
+                      prenom: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+          _count: {
+            select: {
+              echeances: true,
+            },
+          },
+        },
+        orderBy: {
+          dateDebut: 'desc',
+        },
+      }),
+      prisma.pretImmobilier.count({ where }),
+    ]);
+
+    const pages = Math.ceil(total / limitNum);
+
+    res.json({
+      success: true,
+      data: {
+        prets,
+        pagination: {
+          page: pageNum,
+          limit: limitNum,
+          total,
+          pages,
+        },
       },
-    },
-    message: "Tables de prêts non créées - veuillez exécuter les CREATE TABLE manuellement"
-  });
+    });
+  } catch (error: any) {
+    // If tables don't exist, return empty response
+    if (error.code === 'P2021' || error.message?.includes('does not exist')) {
+      res.json({
+        success: true,
+        data: {
+          prets: [],
+          pagination: {
+            page: pageNum,
+            limit: limitNum,
+            total: 0,
+            pages: 0,
+          },
+        },
+        message: "Tables de prêts non créées - veuillez exécuter les CREATE TABLE manuellement"
+      });
+    } else {
+      throw error;
+    }
+  }
 }));
 
 // @route   GET /api/prets/:id
