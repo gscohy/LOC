@@ -44,7 +44,8 @@
       "Bash(del test-init-templates.js test-init-templates.mjs test-route-behavior.mjs test-api-call.mjs check-templates.mjs)",
       "WebFetch(domain:loc-backend.onrender.com)",
       "WebFetch(domain:loc-frontend.onrender.com)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "WebFetch(domain:loc-backend-production.up.railway.app)"
     ],
     "deny": []
   }

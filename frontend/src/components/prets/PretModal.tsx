@@ -98,7 +98,9 @@ const PretModal: React.FC<PretModalProps> = ({ isOpen, onClose, pret, onSuccess 
 
   // Remplir le formulaire en mode édition
   useEffect(() => {
+    console.log('🔄 PretModal useEffect: isOpen=', isOpen, 'pret=', pret);
     if (isOpen && pret) {
+      console.log('📝 PretModal: Mode édition, remplissage du formulaire');
       reset({
         bienId: pret.bienId,
         nom: pret.nom,
@@ -115,6 +117,7 @@ const PretModal: React.FC<PretModalProps> = ({ isOpen, onClose, pret, onSuccess 
         commentaires: pret.commentaires || '',
       });
     } else if (isOpen) {
+      console.log('✨ PretModal: Mode création, formulaire vide');
       reset({
         statut: 'ACTIF',
         mensualiteAssurance: 0,
@@ -145,11 +148,22 @@ const PretModal: React.FC<PretModalProps> = ({ isOpen, onClose, pret, onSuccess 
   }, [watchedValues, setValue]);
 
   const onSubmit = (data: FormData) => {
+    console.log('🔍 PretModal: onSubmit called with:', data);
+    
+    // Validation des données essentielles
+    if (!data.bienId || !data.nom || !data.banque || !data.montantEmprunte || 
+        !data.tauxInteret || !data.dureeAnnees || !data.dateDebut || !data.dateFin) {
+      console.log('❌ PretModal: Données incomplètes, abandon de la soumission');
+      toast.error('Veuillez remplir tous les champs obligatoires');
+      return;
+    }
+    
     const submitData: CreatePretData = {
       ...data,
       dateDebut: new Date(data.dateDebut).toISOString(),
       dateFin: new Date(data.dateFin).toISOString(),
     };
+    console.log('🚀 PretModal: About to submit:', submitData);
     saveMutation.mutate(submitData);
   };
 

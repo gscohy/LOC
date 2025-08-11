@@ -164,78 +164,108 @@ router.get('/', asyncHandler(async (req: AuthenticatedRequest, res) => {
 // @desc    Get single loan with payment schedule
 // @access  Private
 router.get('/:id', asyncHandler(async (req: AuthenticatedRequest, res) => {
-  const pret = await prisma.pretImmobilier.findUnique({
-    where: { id: req.params.id },
-    include: {
-      bien: {
-        select: {
-          id: true,
-          adresse: true,
-          ville: true,
-          codePostal: true,
-          proprietaires: {
-            include: {
-              proprietaire: {
-                select: {
-                  id: true,
-                  nom: true,
-                  prenom: true,
+  try {
+    const pret = await prisma.pretImmobilier.findUnique({
+      where: { id: req.params.id },
+      include: {
+        bien: {
+          select: {
+            id: true,
+            adresse: true,
+            ville: true,
+            codePostal: true,
+            proprietaires: {
+              include: {
+                proprietaire: {
+                  select: {
+                    id: true,
+                    nom: true,
+                    prenom: true,
+                  },
                 },
               },
             },
           },
         },
-      },
-      echeances: {
-        orderBy: {
-          rang: 'asc',
+        echeances: {
+          orderBy: {
+            rang: 'asc',
+          },
         },
       },
-    },
-  });
+    });
 
-  if (!pret) {
-    throw createError('Prêt non trouvé', 404);
+    if (!pret) {
+      throw createError('Prêt non trouvé', 404);
+    }
+
+    res.json({
+      success: true,
+      data: pret,
+    });
+  } catch (error: any) {
+    // If tables don't exist, return specific error
+    if (error.code === 'P2021' || error.message?.includes('does not exist')) {
+      res.status(500).json({
+        success: false,
+        error: { 
+          message: "Tables de prêts non créées - veuillez exécuter les CREATE TABLE manuellement" 
+        },
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      throw error;
+    }
   }
-
-  res.json({
-    success: true,
-    data: pret,
-  });
 }));
 
 // @route   POST /api/prets
 // @desc    Create new loan
 // @access  Private
 router.post('/', asyncHandler(async (req: AuthenticatedRequest, res) => {
-  const validatedData = pretSchema.parse(req.body);
+  try {
+    const validatedData = pretSchema.parse(req.body);
 
-  // Vérifier que le bien existe
-  const bien = await prisma.bien.findUnique({
-    where: { id: validatedData.bienId },
-  });
+    // Vérifier que le bien existe
+    const bien = await prisma.bien.findUnique({
+      where: { id: validatedData.bienId },
+    });
 
-  if (!bien) {
-    throw createError('Bien non trouvé', 404);
-  }
+    if (!bien) {
+      throw createError('Bien non trouvé', 404);
+    }
 
-  const pret = await prisma.pretImmobilier.create({
-    data: validatedData,
-    include: {
-      bien: {
-        select: {
-          adresse: true,
-          ville: true,
+    const pret = await prisma.pretImmobilier.create({
+      data: validatedData,
+      include: {
+        bien: {
+          select: {
+            adresse: true,
+            ville: true,
+          },
         },
       },
-    },
-  });
+    });
 
-  res.status(201).json({
-    success: true,
-    data: pret,
-    message: 'Prêt créé avec succès',
-  });
+    res.status(201).json({
+      success: true,
+      data: pret,
+      message: 'Prêt créé avec succès',
+    });
+  } catch (error: any) {
+    // If tables don't exist, return specific error
+    if (error.code === 'P2021' || error.message?.includes('does not exist')) {
+      res.status(500).json({
+        success: false,
+        error: { 
+          message: "Tables de prêts non créées - veuillez exécuter les CREATE TABLE manuellement" 
+        },
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      throw error;
+    }
+  }
 }));
 
 // @route   POST /api/prets/:id/upload-tableau
