@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import toast from 'react-hot-toast';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft,
   Home,
@@ -44,10 +44,19 @@ import DocumentManager from '@/components/Documents/DocumentManager';
 const BienDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   
   console.log('🔍 BienDetailsPage - ID from URL params:', id);
   
   const [activeTab, setActiveTab] = useState<'overview' | 'contrats' | 'loyers' | 'charges' | 'garants' | 'documents'>('overview');
+
+  // Handle tab from URL query parameter
+  useEffect(() => {
+    const tabFromUrl = searchParams.get('tab');
+    if (tabFromUrl && ['overview', 'contrats', 'loyers', 'charges', 'garants', 'documents'].includes(tabFromUrl)) {
+      setActiveTab(tabFromUrl as any);
+    }
+  }, [searchParams]);
   const [selectedContrat, setSelectedContrat] = useState<ContratDetails | null>(null);
   const [selectedLoyer, setSelectedLoyer] = useState<LoyerDetails | null>(null);
   const [multiplePaiementModalOpen, setMultiplePaiementModalOpen] = useState(false);

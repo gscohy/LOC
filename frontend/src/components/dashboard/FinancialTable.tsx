@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery } from 'react-query';
+import { useNavigate } from 'react-router-dom';
 import { Filter, Download } from 'lucide-react';
 import Select from '@/components/ui/Select';
 import Button from '@/components/ui/Button';
@@ -29,6 +30,7 @@ interface FinancialTableProps {
 const FinancialTable: React.FC<FinancialTableProps> = ({ year = new Date().getFullYear() }) => {
   const [selectedProprietaire, setSelectedProprietaire] = useState<string>('');
   const [showFilters, setShowFilters] = useState(false);
+  const navigate = useNavigate();
 
   // Récupérer les données
   const { data: proprietaires } = useQuery('proprietaires', () =>
@@ -92,6 +94,10 @@ const FinancialTable: React.FC<FinancialTableProps> = ({ year = new Date().getFu
       label: `${prop.prenom} ${prop.nom}`
     })) || [])
   ];
+
+  const handleCellDoubleClick = (bienId: string) => {
+    navigate(`/biens/${bienId}?tab=loyers`);
+  };
 
   const exportToCSV = () => {
     const headers = ['Adresse', ...Array.from({length: 12}, (_, i) => getMonthName(i + 1)), 'Total'];
@@ -187,7 +193,11 @@ const FinancialTable: React.FC<FinancialTableProps> = ({ year = new Date().getFu
             <tbody className="bg-white divide-y divide-gray-200">
               {finalTableData.map((row, index) => (
                 <tr key={row.bienId} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                  <td className="px-6 py-4 text-sm font-medium text-gray-900 sticky left-0 bg-inherit z-10 border-r border-gray-200">
+                  <td 
+                    className="px-6 py-4 text-sm font-medium text-gray-900 sticky left-0 bg-inherit z-10 border-r border-gray-200 cursor-pointer hover:bg-blue-50"
+                    onDoubleClick={() => handleCellDoubleClick(row.bienId)}
+                    title="Double-cliquez pour accéder au détail du bien"
+                  >
                     <div className="max-w-xs truncate" title={row.adresse}>
                       {row.adresse}
                     </div>
@@ -197,7 +207,12 @@ const FinancialTable: React.FC<FinancialTableProps> = ({ year = new Date().getFu
                     const hasData = monthData && (monthData.loyer > 0 || monthData.charges > 0 || monthData.hasContract);
                     
                     return (
-                      <td key={i + 1} className={`px-3 py-4 text-sm text-center font-medium ${hasData ? getCellColor(monthData.tauxPaiement, monthData.hasContract) : 'bg-gray-50 text-gray-600'}`}>
+                      <td 
+                        key={i + 1} 
+                        className={`px-3 py-4 text-sm text-center font-medium cursor-pointer hover:opacity-80 ${hasData ? getCellColor(monthData.tauxPaiement, monthData.hasContract) : 'bg-gray-50 text-gray-600'}`}
+                        onDoubleClick={() => handleCellDoubleClick(row.bienId)}
+                        title="Double-cliquez pour accéder au détail du bien"
+                      >
                         {hasData ? (
                           <div className="flex flex-col items-center">
                             <div className="font-semibold text-base leading-tight">
@@ -253,7 +268,11 @@ const FinancialTable: React.FC<FinancialTableProps> = ({ year = new Date().getFu
                     }
                     
                     return (
-                      <td className={`px-3 py-4 text-sm text-center font-bold ${bgColor}`}>
+                      <td 
+                        className={`px-3 py-4 text-sm text-center font-bold cursor-pointer hover:opacity-80 ${bgColor}`}
+                        onDoubleClick={() => handleCellDoubleClick(row.bienId)}
+                        title="Double-cliquez pour accéder au détail du bien"
+                      >
                         <div className="flex flex-col items-center">
                           <div className="font-semibold text-base leading-tight text-green-600">
                             {formatCurrency(revenus)}
