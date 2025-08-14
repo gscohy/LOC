@@ -418,7 +418,7 @@ router.put('/:id', asyncHandler(async (req: AuthenticatedRequest, res) => {
 }));
 
 // @route   DELETE /api/loyers/:id
-// @desc    Delete loyer
+// @desc    Delete loyer and all associated payments and quittances
 // @access  Private
 router.delete('/:id', asyncHandler(async (req: AuthenticatedRequest, res) => {
   // Vérifier que le loyer existe
@@ -429,6 +429,7 @@ router.delete('/:id', asyncHandler(async (req: AuthenticatedRequest, res) => {
         select: {
           paiements: true,
           quittances: true,
+          rappels: true,
         },
       },
     },
@@ -438,18 +439,32 @@ router.delete('/:id', asyncHandler(async (req: AuthenticatedRequest, res) => {
     throw createError('Loyer non trouvé', 404);
   }
 
-  // Vérifier qu'il n'y a pas de paiements ou quittances associés
-  if (existing._count.paiements > 0 || existing._count.quittances > 0) {
-    throw createError('Impossible de supprimer un loyer ayant des paiements ou quittances associés', 400);
-  }
+  // Supprimer le loyer et tous les éléments associés dans une transaction
+  await prisma.$transaction(async (tx) => {
+    // Supprimer d'abord les paiements
+    await tx.paiement.deleteMany({
+      where: { loyerId: req.params.id },
+    });
 
-  await prisma.loyer.delete({
-    where: { id: req.params.id },
+    // Supprimer les quittances
+    await tx.quittance.deleteMany({
+      where: { loyerId: req.params.id },
+    });
+
+    // Supprimer les rappels
+    await tx.rappel.deleteMany({
+      where: { loyerId: req.params.id },
+    });
+
+    // Finalement supprimer le loyer
+    await tx.loyer.delete({
+      where: { id: req.params.id },
+    });
   });
 
   res.json({
     success: true,
-    message: 'Loyer supprimé avec succès',
+    message: `Loyer supprimé avec succès (incluant ${existing._count.paiements} paiement(s), ${existing._count.quittances} quittance(s) et ${existing._count.rappels} rappel(s))`,
   });
 }));
 
