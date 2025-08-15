@@ -325,6 +325,81 @@ const EmailTemplatesPage: React.FC = () => {
         </div>
       </div>
 
+      {/* Section Variables Disponibles */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+        <h3 className="text-lg font-medium text-blue-900 mb-4 flex items-center">
+          <FileText className="h-5 w-5 mr-2" />
+          Variables Disponibles pour les Templates
+        </h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div>
+            <h4 className="font-medium text-blue-800 mb-3">🧑 Locataire</h4>
+            <div className="space-y-1 text-sm">
+              <div><code className="bg-white px-2 py-1 rounded text-blue-700">locataire_nom</code> - Nom du locataire</div>
+              <div><code className="bg-white px-2 py-1 rounded text-blue-700">locataire_prenom</code> - Prénom du locataire</div>
+              <div><code className="bg-white px-2 py-1 rounded text-blue-700">locataire_nom_complet</code> - Nom complet</div>
+            </div>
+          </div>
+
+          <div>
+            <h4 className="font-medium text-blue-800 mb-3">🏠 Bien/Propriété</h4>
+            <div className="space-y-1 text-sm">
+              <div><code className="bg-white px-2 py-1 rounded text-blue-700">bien_adresse</code> - Adresse du bien</div>
+              <div><code className="bg-white px-2 py-1 rounded text-blue-700">bien_ville</code> - Ville du bien</div>
+              <div><code className="bg-white px-2 py-1 rounded text-blue-700">bien_code_postal</code> - Code postal</div>
+            </div>
+          </div>
+
+          <div>
+            <h4 className="font-medium text-blue-800 mb-3">👤 Propriétaire</h4>
+            <div className="space-y-1 text-sm">
+              <div><code className="bg-white px-2 py-1 rounded text-blue-700">proprietaire_nom_complet</code> - Nom complet</div>
+              <div><code className="bg-white px-2 py-1 rounded text-blue-700">proprietaire_adresse</code> - Adresse</div>
+              <div><code className="bg-white px-2 py-1 rounded text-blue-700">signature_proprietaire</code> - Signature HTML</div>
+            </div>
+          </div>
+
+          <div>
+            <h4 className="font-medium text-blue-800 mb-3">💰 Financier/Loyer</h4>
+            <div className="space-y-1 text-sm">
+              <div><code className="bg-white px-2 py-1 rounded text-blue-700">periode</code> - Période (ex: "Janvier 2025")</div>
+              <div><code className="bg-white px-2 py-1 rounded text-blue-700">loyer_montant</code> - Montant total du loyer</div>
+              <div><code className="bg-white px-2 py-1 rounded text-blue-700">montant_regle</code> - Montant déjà réglé</div>
+              <div><code className="bg-white px-2 py-1 rounded text-blue-700">montant_du</code> - Montant dû/restant</div>
+              <div><code className="bg-white px-2 py-1 rounded text-blue-700">charges_montant</code> - Montant des charges</div>
+              <div><code className="bg-white px-2 py-1 rounded text-blue-700">total_quittance</code> - Total quittance</div>
+            </div>
+          </div>
+
+          <div>
+            <h4 className="font-medium text-blue-800 mb-3">📅 Dates</h4>
+            <div className="space-y-1 text-sm">
+              <div><code className="bg-white px-2 py-1 rounded text-blue-700">date_paiement</code> - Date de paiement</div>
+              <div><code className="bg-white px-2 py-1 rounded text-blue-700">date_etablissement</code> - Date d'établissement</div>
+              <div><code className="bg-white px-2 py-1 rounded text-blue-700">date_limite</code> - Date limite</div>
+              <div><code className="bg-white px-2 py-1 rounded text-blue-700">nb_jours_retard</code> - Jours de retard</div>
+            </div>
+          </div>
+
+          <div>
+            <h4 className="font-medium text-blue-800 mb-3">📄 Générales</h4>
+            <div className="space-y-1 text-sm">
+              <div><code className="bg-white px-2 py-1 rounded text-blue-700">message_personnalise</code> - Message personnalisé</div>
+              <div><code className="bg-white px-2 py-1 rounded text-blue-700">lieu_etablissement</code> - Lieu d'établissement</div>
+              <div><code className="bg-white px-2 py-1 rounded text-blue-700">date_entree</code> - Date d'entrée locataire</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4 p-4 bg-blue-100 rounded-lg">
+          <p className="text-sm text-blue-800">
+            <strong>💡 Utilisation :</strong> Utilisez ces variables dans vos templates avec la syntaxe <strong>{'{{nom_variable}}'}</strong>.
+            Les variables seront automatiquement remplacées par les vraies valeurs lors de l'envoi des emails.
+          </p>
+        </div>
+      </div>
+
       <div className="card">
         <div className="p-6 border-b border-gray-200">
           <h2 className="text-lg font-medium text-gray-900">

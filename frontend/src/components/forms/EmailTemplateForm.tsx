@@ -74,15 +74,15 @@ const EmailTemplateForm: React.FC<EmailTemplateFormProps> = ({
   const predefinedVariables: { [key: string]: string[] } = {
     RETARD: [
       'locataire_nom', 'locataire_prenom', 'bien_adresse', 'bien_ville',
-      'loyer_montant', 'periode', 'montant_du', 'nb_jours_retard'
+      'loyer_montant', 'montant_regle', 'montant_du', 'periode', 'nb_jours_retard'
     ],
     RELANCE: [
       'locataire_nom', 'locataire_prenom', 'bien_adresse', 'bien_ville',
-      'montant_du', 'nb_jours_retard', 'date_limite'
+      'montant_regle', 'montant_du', 'nb_jours_retard', 'date_limite'
     ],
     MISE_EN_DEMEURE: [
       'locataire_nom', 'locataire_prenom', 'bien_adresse', 'bien_ville',
-      'montant_du', 'nb_jours_retard', 'periode'
+      'montant_regle', 'montant_du', 'nb_jours_retard', 'periode'
     ],
     INFORMATION: [
       'locataire_nom', 'locataire_prenom', 'bien_adresse', 'bien_ville',
@@ -263,6 +263,7 @@ L'équipe de gestion`
       bien_adresse: '123 rue des Exemples',
       bien_ville: 'Paris',
       loyer_montant: '1200',
+      montant_regle: '0',
       periode: 'Janvier 2025',
       montant_du: '1200',
       nb_jours_retard: '15',
@@ -282,7 +283,7 @@ L'équipe de gestion`
       total_quittance: '560,00',
       date_etablissement: '11/08/2025',
       lieu_etablissement: 'Ligny en cambrésis',
-      signature_proprietaire: 'https://via.placeholder.com/200x80/3498db/ffffff?text=Signature',
+      signature_proprietaire: '<img src="https://via.placeholder.com/200x80/3498db/ffffff?text=Signature" alt="Signature" style="max-height: 80px; max-width: 200px;" />',
       message_personnalise: 'Voici votre message personnalisé.',
     };
 

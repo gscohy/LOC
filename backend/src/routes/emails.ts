@@ -548,6 +548,7 @@ router.post('/templates/:id/preview', asyncHandler(async (req: AuthenticatedRequ
       bien_adresse: '123 rue des Exemples',
       bien_ville: 'Paris',
       loyer_montant: '1200',
+      montant_regle: '0',
       periode: 'Janvier 2025',
       montant_du: '1200',
       nb_jours_retard: '15'
@@ -566,6 +567,7 @@ router.post('/templates/:id/preview', asyncHandler(async (req: AuthenticatedRequ
       locataire_prenom: 'Pierre',
       bien_adresse: '789 boulevard Saint-Michel',
       bien_ville: 'Marseille',
+      montant_regle: '500',
       montant_du: '1500',
       nb_jours_retard: '30',
       date_limite: '15/02/2025'

@@ -17,6 +17,7 @@ import {
 
 import { rappelsService, RappelCreate } from '@/services/rappels';
 import { emailsService } from '@/services/emails';
+import { proprietairesService } from '@/services/proprietaires';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
@@ -110,12 +111,39 @@ const RappelForm: React.FC<RappelFormProps> = ({
       staleTime: 5 * 60 * 1000, // Cache 5 minutes
     }
   );
+
+  // Récupérer les données des propriétaires pour les signatures
+  const { data: proprietairesData } = useQuery(
+    'proprietaires-for-signatures',
+    () => proprietairesService.getAll({ limit: 100 }),
+    {
+      staleTime: 10 * 60 * 1000, // Cache 10 minutes
+    }
+  );
   
   // Suggérer le prochain type de rappel
   const typeSuggere = (loyer.rappels && loyer.rappels.length > 0) ? 
     (loyer.rappels.some(r => r.type === 'MISE_EN_DEMEURE') ? 'AUTRE' : 
      loyer.rappels.some(r => r.type === 'RELANCE') ? 'MISE_EN_DEMEURE' :
      loyer.rappels.some(r => r.type === 'RETARD') ? 'RELANCE' : 'RETARD') : 'RETARD';
+
+  // Fonction pour générer l'HTML de signature des propriétaires
+  const generateProprietairesSignatures = useCallback(() => {
+    if (!proprietairesData?.data || proprietairesData.data.length === 0) {
+      return '<p style="font-style: italic; color: #666;">Signature propriétaire</p>';
+    }
+
+    // Pour l'instant, récupérer le premier propriétaire (TODO: améliorer pour gérer plusieurs propriétaires)
+    const propriétaire = proprietairesData.data[0];
+    
+    if (propriétaire.signature) {
+      // Extraire le nom de fichier depuis le chemin complet
+      const filename = propriétaire.signature.split(/[/\\]/).pop();
+      return `<img src="/public/signatures/${filename}" alt="Signature ${propriétaire.prenom} ${propriétaire.nom}" style="max-height: 80px; max-width: 200px; border: 1px solid #ddd; padding: 5px;" />`;
+    }
+    
+    return `<p style="font-style: italic; color: #666;">Signature de ${propriétaire.prenom} ${propriétaire.nom}</p>`;
+  }, [proprietairesData?.data]);
 
   // Fonction pour générer le message à partir des templates email
   const generateMessageFromTemplate = useCallback((type: string) => {
@@ -155,12 +183,13 @@ const RappelForm: React.FC<RappelFormProps> = ({
       proprietaire_adresse: 'Adresse propriétaire', // TODO
       proprietaire_ville: 'Ville propriétaire', // TODO
       proprietaire_code_postal: 'CP propriétaire', // TODO
-      signature_proprietaire: '<img src="/api/signatures/default-signature.png" alt="Signature" style="max-height: 80px; max-width: 200px; border: 1px solid #ddd; padding: 5px;" />', // TODO: récupérer vraie signature
+      signature_proprietaire: generateProprietairesSignatures(),
       
       // Variables loyer/financier
       periode: moisAnnee,
       mois_annee: moisAnnee,
       montant_du: montantRestant.toString(),
+      montant_regle: loyer.montantPaye.toString(),
       loyer_montant: loyer.montantDu.toString(),
       loyer_hors_charges: (loyer.montantDu * 0.95).toFixed(2), // TODO: calculer vraiment
       charges_montant: (loyer.montantDu * 0.05).toFixed(2), // TODO: récupérer les vraies charges
@@ -188,7 +217,7 @@ const RappelForm: React.FC<RappelFormProps> = ({
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = contenu;
     return tempDiv.textContent || tempDiv.innerText || '';
-  }, [templatesData?.data, loyer.contrat, loyer.mois, loyer.annee, loyer.montantDu, loyer.montantPaye]);
+  }, [templatesData?.data, loyer.contrat, loyer.mois, loyer.annee, loyer.montantDu, loyer.montantPaye, generateProprietairesSignatures]);
   
   // Emails des locataires
   const emailsLocataires = (loyer.contrat && loyer.contrat.locataires) ? 
