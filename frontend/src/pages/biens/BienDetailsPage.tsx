@@ -40,6 +40,7 @@ import ResiliationModal from '@/components/contrats/ResiliationModal';
 import ContratForm from '@/components/forms/ContratForm';
 import BienGarantsSection from '@/components/garants/BienGarantsSection';
 import DocumentManager from '@/components/Documents/DocumentManager';
+import QuittancePreviewModal from '@/components/quittances/QuittancePreviewModal';
 
 const BienDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -66,6 +67,8 @@ const BienDetailsPage: React.FC = () => {
   const [resiliationModalOpen, setResiliationModalOpen] = useState(false);
   const [selectedContratForResiliation, setSelectedContratForResiliation] = useState<ContratDetails | null>(null);
   const [createContratModalOpen, setCreateContratModalOpen] = useState(false);
+  const [quittancePreviewModalOpen, setQuittancePreviewModalOpen] = useState(false);
+  const [selectedLoyerForQuittance, setSelectedLoyerForQuittance] = useState<LoyerDetails | null>(null);
 
   const queryClient = useQueryClient();
 
@@ -216,34 +219,28 @@ const BienDetailsPage: React.FC = () => {
     setCreateContratModalOpen(false);
   };
 
-  // Fonction pour générer et envoyer une quittance
-  const handleGenerateQuittance = async (loyer: LoyerDetails) => {
+  // Fonction pour ouvrir la prévisualisation de quittance
+  const handleGenerateQuittance = (loyer: LoyerDetails) => {
     if (loyer.statut !== 'PAYE') {
       toast.error('Le loyer doit être payé pour générer une quittance');
       return;
     }
 
-    try {
-      const result = await quittancesService.create({
-        loyerId: loyer.id
-      });
+    setSelectedLoyerForQuittance(loyer);
+    setQuittancePreviewModalOpen(true);
+  };
 
-      toast.success('Quittance générée et envoyée avec succès !');
-      
-      // Optionnel: ouvrir le PDF dans un nouvel onglet
-      if (result.pdfPath) {
-        const pdfUrl = `http://localhost:3002/uploads/quittances/${result.pdfPath}`;
-        console.log('Ouverture PDF:', pdfUrl);
-        window.open(pdfUrl, '_blank');
-      }
-      
-      // Rafraîchir les données
-      queryClient.invalidateQueries(['bien-details', id]);
-      
-    } catch (error: any) {
-      console.error('Erreur génération quittance:', error);
-      toast.error(error?.response?.data?.error?.message || 'Erreur lors de la génération de la quittance');
-    }
+  // Fonction appelée après confirmation d'envoi
+  const handleQuittanceSent = () => {
+    // Rafraîchir les données
+    queryClient.invalidateQueries(['bien-details', id]);
+    setQuittancePreviewModalOpen(false);
+    setSelectedLoyerForQuittance(null);
+  };
+
+  const closeQuittancePreviewModal = () => {
+    setQuittancePreviewModalOpen(false);
+    setSelectedLoyerForQuittance(null);
   };
 
   if (isLoading) {
@@ -1085,6 +1082,16 @@ const BienDetailsPage: React.FC = () => {
           loading={createContratMutation.isLoading}
         />
       </Modal>
+
+      {/* Modal de prévisualisation de quittance */}
+      {selectedLoyerForQuittance && (
+        <QuittancePreviewModal
+          isOpen={quittancePreviewModalOpen}
+          onClose={closeQuittancePreviewModal}
+          loyer={selectedLoyerForQuittance}
+          onConfirmSend={handleQuittanceSent}
+        />
+      )}
     </div>
   );
 };

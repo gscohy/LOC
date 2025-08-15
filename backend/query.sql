@@ -1,0 +1,1 @@
+SELECT id, prenom, nom, signature FROM "Proprietaire" WHERE signature IS NOT NULL LIMIT 5;

@@ -32,6 +32,7 @@ import FiscalitePage from '@/pages/fiscalite/FiscalitePage';
 import PretsPage from '@/pages/prets/PretsPage';
 import DiagnosticPage from '@/pages/DiagnosticPage';
 import EmailsPage from '@/pages/emails/EmailsPage';
+import SettingsPage from '@/pages/settings/SettingsPage';
 
 // Loading component
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
@@ -365,6 +366,16 @@ function App() {
             <ProtectedRoute>
               <DashboardLayout>
                 <BasicDropTest />
+              </DashboardLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <DashboardLayout>
+                <SettingsPage />
               </DashboardLayout>
             </ProtectedRoute>
           }

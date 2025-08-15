@@ -22,6 +22,7 @@ const proprietaireSchema = z.object({
   ville: z.string().min(1, 'La ville est requise'),
   entreprise: z.string().optional(),
   siret: z.string().optional(),
+  numeroRIB: z.string().optional(),
 });
 
 type ProprietaireFormData = z.infer<typeof proprietaireSchema>;
@@ -70,6 +71,7 @@ const ProprietaireFormSimpleSignature: React.FC<ProprietaireFormSimpleSignatureP
           ville: initialData.ville,
           entreprise: initialData.entreprise || '',
           siret: initialData.siret || '',
+          numeroRIB: initialData.numeroRIB || '',
         }
       : {
           type: 'PHYSIQUE',
@@ -82,6 +84,7 @@ const ProprietaireFormSimpleSignature: React.FC<ProprietaireFormSimpleSignatureP
           ville: '',
           entreprise: '',
           siret: '',
+          numeroRIB: '',
         },
   });
 
@@ -94,6 +97,7 @@ const ProprietaireFormSimpleSignature: React.FC<ProprietaireFormSimpleSignatureP
         telephone: data.telephone || null,
         entreprise: data.entreprise || null,
         siret: data.siret || null,
+        numeroRIB: data.numeroRIB || null,
       };
       
       // Soumettre les données du propriétaire
@@ -160,7 +164,7 @@ const ProprietaireFormSimpleSignature: React.FC<ProprietaireFormSimpleSignatureP
       }
       
       // Utiliser la route publique pour servir la signature
-      return `http://localhost:3002/public/signatures/${filename}`;
+      return `/public/signatures/${filename}`;
     }
     return undefined;
   };
@@ -328,6 +332,20 @@ const ProprietaireFormSimpleSignature: React.FC<ProprietaireFormSimpleSignatureP
               {...register('ville')}
             />
           </div>
+        </div>
+
+        {/* Informations bancaires */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-medium text-gray-900">Informations bancaires</h3>
+          
+          <Input
+            label="Numéro de RIB (optionnel)"
+            type="text"
+            placeholder="FR76 1234 5678 9012 3456 78"
+            error={errors.numeroRIB?.message}
+            {...register('numeroRIB')}
+            helperText="Saisissez le numéro de RIB pour faciliter les virements"
+          />
         </div>
 
         {/* Signature */}

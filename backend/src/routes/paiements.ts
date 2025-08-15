@@ -344,21 +344,7 @@ async function genererQuittanceAutomatique(tx: any, loyerId: string, loyer: any,
                 data: { pdfPath: pdfPath },
               });
 
-              // Envoyer automatiquement par email
-              console.log('📧 Envoi de la quittance par email...');
-              await sendQuittanceByEmail(quittanceComplete, pdfPath);
-              
-              // Marquer comme envoyée
-              await prisma.quittance.update({
-                where: { id: quittanceComplete.id },
-                data: {
-                  emailEnvoye: true,
-                  dateEnvoi: new Date(),
-                  statut: 'ENVOYEE',
-                },
-              });
-
-              console.log('✅ Quittance générée et envoyée automatiquement par email');
+              console.log('✅ Quittance générée (prête pour envoi manuel)');
             } catch (emailError) {
               console.error('❌ Erreur traitement quittance automatique:', emailError);
               
@@ -373,7 +359,7 @@ async function genererQuittanceAutomatique(tx: any, loyerId: string, loyer: any,
           });
         }
 
-        console.log('✅ Quittance générée automatiquement - traitement PDF/email en cours...');
+        console.log('✅ Quittance générée automatiquement - PDF en cours de génération...');
       }
     } catch (quittanceError) {
       console.error('❌ Erreur génération quittance automatique:', quittanceError);

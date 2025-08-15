@@ -23,6 +23,7 @@ const bienSchema = z.object({
   depotGarantie: z.number().min(0, 'Le dépôt de garantie ne peut pas être négatif'),
   statut: z.enum(['LIBRE', 'LOUE', 'MAINTENANCE', 'VENDU']),
   description: z.string().optional(),
+  reglementInterieur: z.string().optional(),
   proprietaires: z.array(z.object({
     id: z.string(),
     quotePart: z.number().min(0).max(100),
@@ -350,6 +351,22 @@ const BienForm: React.FC<BienFormProps> = ({
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
           placeholder="Description du bien..."
         />
+      </div>
+
+      {/* Règlement intérieur */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Règlement intérieur (optionnel)
+        </label>
+        <textarea
+          {...register('reglementInterieur')}
+          rows={4}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+          placeholder="Règles concernant les poubelles, le stationnement, le bruit, etc..."
+        />
+        <p className="text-xs text-gray-500 mt-1">
+          Précisions sur l'usage du bien : horaires poubelles, stationnement, règles de copropriété...
+        </p>
       </div>
 
       {/* Section Photos et Documents */}

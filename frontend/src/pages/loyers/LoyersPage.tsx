@@ -92,6 +92,8 @@ const LoyersPage: React.FC = () => {
   const [selectedLoyer, setSelectedLoyer] = useState<any>(null);
   const [selectedLoyerForRappel, setSelectedLoyerForRappel] = useState<any>(null);
   const [editingLoyer, setEditingLoyer] = useState<any>(null);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [loyerToDelete, setLoyerToDelete] = useState<any>(null);
   const limit = 10;
 
   const queryClient = useQueryClient();
@@ -179,6 +181,22 @@ const LoyersPage: React.FC = () => {
     }
   );
 
+  const deleteLoyerMutation = useMutation(
+    (loyerId: string) => loyersService.delete(loyerId),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries('loyers');
+        queryClient.invalidateQueries('loyersStats');
+        setDeleteModalOpen(false);
+        setLoyerToDelete(null);
+        toast.success('Loyer supprimé avec succès');
+      },
+      onError: (error: any) => {
+        toast.error(error?.response?.data?.error?.message || 'Erreur lors de la suppression du loyer');
+      },
+    }
+  );
+
   // Debug: voir la structure des données
   console.log('📊 Données loyers:', loyersData);
   
@@ -216,6 +234,17 @@ const LoyersPage: React.FC = () => {
   const openRappelModal = (loyer: any) => {
     setSelectedLoyerForRappel(loyer);
     setRappelModalOpen(true);
+  };
+
+  const openDeleteModal = (loyer: any) => {
+    setLoyerToDelete(loyer);
+    setDeleteModalOpen(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (loyerToDelete) {
+      deleteLoyerMutation.mutate(loyerToDelete.id);
+    }
   };
 
   const closePaiementModal = () => {
@@ -497,6 +526,7 @@ const LoyersPage: React.FC = () => {
                         <Button
                           variant="ghost"
                           size="sm"
+                          onClick={() => openDeleteModal(loyer)}
                           className="text-red-600 hover:text-red-700"
                           title="Supprimer"
                         >
@@ -612,6 +642,49 @@ const LoyersPage: React.FC = () => {
             isEditing={true}
           />
         )}
+      </Modal>
+
+      {/* Modal de confirmation de suppression */}
+      <Modal
+        isOpen={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        title="Confirmer la suppression"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <p className="text-gray-600">
+            Êtes-vous sûr de vouloir supprimer ce loyer ?
+          </p>
+          {loyerToDelete && (
+            <div className="bg-gray-50 p-3 rounded-lg">
+              <p className="font-medium">
+                {formatMoisAnnee(loyerToDelete.mois, loyerToDelete.annee)}
+              </p>
+              <p className="text-sm text-gray-600">
+                {loyerToDelete.contrat?.bien?.adresse}
+              </p>
+              <p className="text-sm text-gray-600">
+                Montant: {loyerToDelete.montantDu.toLocaleString()}€
+              </p>
+            </div>
+          )}
+          <div className="flex justify-end space-x-3">
+            <Button
+              variant="outline"
+              onClick={() => setDeleteModalOpen(false)}
+              disabled={deleteLoyerMutation.isLoading}
+            >
+              Annuler
+            </Button>
+            <Button
+              variant="danger"
+              onClick={handleDeleteConfirm}
+              loading={deleteLoyerMutation.isLoading}
+            >
+              Supprimer
+            </Button>
+          </div>
+        </div>
       </Modal>
     </div>
   );

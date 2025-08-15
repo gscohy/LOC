@@ -6,8 +6,157 @@ import nodemailer from 'nodemailer';
 import PDFDocument from 'pdfkit';
 import fs from 'fs';
 import path from 'path';
+import { googleDriveService } from '../services/googleDriveService.js';
 
 const router = express.Router();
+
+// @route   POST /api/quittances/preview
+// @desc    Générer une prévisualisation de quittance sans l'envoyer
+// @access  Private
+router.post('/preview', asyncHandler(async (req: AuthenticatedRequest, res) => {
+  const { loyerId } = req.body;
+
+  if (!loyerId) {
+    throw createError(400, 'Le loyer ID est requis');
+  }
+
+  console.log('👁️ Génération de prévisualisation quittance pour loyer:', loyerId);
+
+  // Vérifier que le loyer existe et est payé
+  const loyer = await prisma.loyer.findUnique({
+    where: { id: loyerId },
+    include: {
+      contrat: {
+        include: {
+          bien: {
+            include: {
+              proprietaires: {
+                include: {
+                  proprietaire: true,
+                },
+              },
+            },
+          },
+          locataires: {
+            include: {
+              locataire: true,
+            },
+          },
+        },
+      },
+      paiements: {
+        orderBy: {
+          date: 'desc',
+        },
+      },
+    },
+  });
+
+  if (!loyer) {
+    throw createError(404, 'Loyer non trouvé');
+  }
+
+  if (loyer.statut !== 'PAYE') {
+    throw createError(400, 'Une quittance ne peut être générée que pour un loyer payé');
+  }
+
+  // Générer la période
+  const moisNoms = [
+    'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+    'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
+  ];
+  const periode = `${moisNoms[loyer.mois - 1]} ${loyer.annee}`;
+
+  // Préparer les destinataires
+  const destinataires = loyer.contrat.locataires
+    .map((cl: any) => cl.locataire.email)
+    .filter((email: string) => email);
+
+  const locataires = loyer.contrat.locataires
+    .map((cl: any) => `${cl.locataire.prenom} ${cl.locataire.nom}`)
+    .join(' et ');
+
+  // Générer le contenu HTML de l'email
+  const emailHtml = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin-bottom: 20px; }
+        .content { margin-bottom: 20px; }
+        .details { background-color: #e9ecef; padding: 15px; border-radius: 5px; margin: 15px 0; }
+        .footer { font-size: 0.9em; color: #666; margin-top: 30px; padding-top: 15px; border-top: 1px solid #ddd; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1 style="color: #2c3e50; margin: 0;">Quittance de loyer</h1>
+          <p style="margin: 5px 0 0 0; color: #666;">Période : ${periode}</p>
+        </div>
+        
+        <div class="content">
+          <p>Bonjour ${locataires},</p>
+          
+          <p>Veuillez trouver ci-joint votre quittance de loyer pour la période <strong>${periode}</strong>.</p>
+          
+          <div class="details">
+            <h3 style="margin-top: 0; color: #2c3e50;">Détails du paiement</h3>
+            <p><strong>Bien :</strong> ${loyer.contrat.bien.adresse}</p>
+            <p><strong>Montant payé :</strong> ${loyer.montantPaye.toFixed(2)} €</p>
+            <p><strong>Période :</strong> ${periode}</p>
+          </div>
+          
+          <p>Cette quittance certifie que nous avons bien reçu le paiement de votre loyer pour la période mentionnée ci-dessus.</p>
+          
+          <p>Cordialement,<br>
+          La gestion locative</p>
+        </div>
+        
+        <div class="footer">
+          <p>Cet email a été généré automatiquement par le système de gestion locative.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  // Générer temporairement un PDF pour la prévisualisation
+  let pdfUrl = null;
+  try {
+    // Créer un objet temporaire similaire à une quittance pour le PDF
+    const tempQuittance = {
+      id: 'preview_' + Date.now(),
+      periode,
+      montant: loyer.montantPaye,
+      dateGeneration: new Date(),
+      loyer
+    };
+
+    const pdfFileName = await generateQuittancePDF(tempQuittance);
+    // Déterminer le bon port selon l'environnement
+    const serverPort = process.env.PORT || '7000';
+    pdfUrl = `http://localhost:${serverPort}/uploads/quittances/${pdfFileName}`;
+    console.log('📄 URL PDF générée:', pdfUrl);
+  } catch (error) {
+    console.error('Erreur génération PDF prévisualisation:', error);
+  }
+
+  res.status(200).json({
+    success: true,
+    data: {
+      emailContent: {
+        subject: `Quittance de loyer - ${periode}`,
+        html: emailHtml,
+        to: destinataires
+      },
+      pdfUrl
+    },
+  });
+}));
 
 // @route   POST /api/quittances
 // @desc    Générer et envoyer une quittance pour un loyer payé
@@ -209,6 +358,37 @@ router.post('/', asyncHandler(async (req: AuthenticatedRequest, res) => {
     where: { id: quittance.id },
     data: { pdfPath: pdfPath },
   });
+
+  // Sauvegarder automatiquement sur Google Drive
+  try {
+    await googleDriveService.initialize();
+    if (googleDriveService.isConfigured()) {
+      const filePath = path.join(process.cwd(), 'uploads', 'quittances', pdfPath);
+      const driveResult = await googleDriveService.uploadFile(
+        filePath, 
+        `Quittance_${periode.replace(' ', '_')}.pdf`,
+        'Quittances',
+        {
+          entityType: 'quittance',
+          entityId: quittance.id,
+          originalName: `Quittance_${periode.replace(' ', '_')}.pdf`
+        }
+      );
+      
+      // Mettre à jour avec l'ID Google Drive
+      await prisma.quittance.update({
+        where: { id: quittance.id },
+        data: { 
+          googleDriveFileId: driveResult.fileId,
+          googleDriveUrl: driveResult.webViewLink
+        }
+      });
+
+      console.log(`Quittance sauvegardée sur Google Drive: ${driveResult.fileId}`);
+    }
+  } catch (driveError) {
+    console.warn(`Échec sauvegarde Google Drive pour quittance ${quittance.id}:`, driveError);
+  }
 
   // Envoyer automatiquement par email
   try {

@@ -175,14 +175,16 @@ const RappelForm: React.FC<RappelFormProps> = ({
       
       // Variables bien
       bien_adresse: adresse,
-      bien_ville: '', // TODO: récupérer depuis le bien
-      bien_code_postal: '', // TODO: récupérer depuis le bien
+      bien_ville: loyer.contrat?.bien?.ville || '',
+      bien_code_postal: loyer.contrat?.bien?.codePostal || '',
+      bien_reglement: loyer.contrat?.bien?.reglementInterieur || '',
       
       // Variables propriétaire (TODO: récupérer depuis la base)
       proprietaire_nom_complet: 'Propriétaire', // TODO: récupérer les vrais noms
       proprietaire_adresse: 'Adresse propriétaire', // TODO
       proprietaire_ville: 'Ville propriétaire', // TODO
       proprietaire_code_postal: 'CP propriétaire', // TODO
+      proprietaire_rib: 'RIB propriétaire', // TODO
       signature_proprietaire: generateProprietairesSignatures(),
       
       // Variables loyer/financier
@@ -194,12 +196,15 @@ const RappelForm: React.FC<RappelFormProps> = ({
       loyer_hors_charges: (loyer.montantDu * 0.95).toFixed(2), // TODO: calculer vraiment
       charges_montant: (loyer.montantDu * 0.05).toFixed(2), // TODO: récupérer les vraies charges
       total_quittance: loyer.montantDu.toString(),
+      mode_paiement: loyer.contrat?.modePaiement || 'VIREMENT',
       
       // Variables dates
       nb_jours_retard: Math.max(0, Math.floor((Date.now() - new Date(loyer.annee, loyer.mois - 1, 5).getTime()) / (1000 * 60 * 60 * 24))).toString(),
       date_paiement: new Date().toLocaleDateString('fr-FR'),
       date_etablissement: new Date().toLocaleDateString('fr-FR'),
       date_limite: new Date(Date.now() + 8 * 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR'),
+      date_etat_lieux: loyer.contrat?.dateEtatLieux ? new Date(loyer.contrat.dateEtatLieux).toLocaleDateString('fr-FR') : '',
+      heure_etat_lieux: loyer.contrat?.heureEtatLieux || '',
       lieu_etablissement: 'Ville', // TODO: récupérer depuis config
       
       // Variables générales

@@ -5,6 +5,7 @@ import fs from 'fs';
 import { z } from 'zod';
 import { PrismaClient } from '@prisma/client';
 import { logger } from '../utils/logger.js';
+import { googleDriveService } from '../services/googleDriveService.js';
 
 // Créer une instance Prisma locale pour les documents
 const prisma = new PrismaClient();
@@ -118,6 +119,39 @@ router.post('/upload', upload.single('document'), async (req, res) => {
         garantId: validatedData.garantId,
         bienId: validatedData.bienId,
         description: validatedData.description
+      }
+    });
+
+    // Sauvegarder automatiquement sur Google Drive (asynchrone)
+    setImmediate(async () => {
+      try {
+        await googleDriveService.initialize();
+        if (googleDriveService.isConfigured()) {
+          const filePath = path.join(process.cwd(), 'uploads', 'documents', req.file.filename);
+          const driveResult = await googleDriveService.uploadFile(
+            filePath, 
+            req.file.originalname,
+            'Documents',
+            {
+              entityType: validatedData.categorie,
+              entityId: document.id,
+              originalName: req.file.originalname
+            }
+          );
+          
+          // Mettre à jour le document avec l'ID Google Drive
+          await prisma.document.update({
+            where: { id: document.id },
+            data: { 
+              googleDriveFileId: driveResult.fileId,
+              googleDriveUrl: driveResult.webViewLink
+            }
+          });
+
+          logger.info(`Document sauvegardé sur Google Drive: ${req.file.originalname} (${driveResult.fileId})`);
+        }
+      } catch (driveError) {
+        logger.warn(`Échec sauvegarde Google Drive pour ${req.file.originalname}:`, driveError);
       }
     });
 

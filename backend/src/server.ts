@@ -32,6 +32,7 @@ import fiscaliteRoutes from './routes/fiscalite.js';
 import documentsRoutes from './routes/documents.js';
 import schedulerRoutes from './routes/scheduler.js';
 import pretsRoutes from './routes/prets.js';
+import googleDriveRoutes from './routes/googleDrive.js';
 
 // Import scheduler
 import { taskScheduler } from './services/scheduler.js';
@@ -80,8 +81,10 @@ const corsOptions = {
       ]
     : [
         'http://localhost:5173',
+        'http://localhost:5174',
         'http://localhost:3000',
         'http://127.0.0.1:5173',
+        'http://127.0.0.1:5174',
         'http://127.0.0.1:3000'
       ],
   credentials: true,
@@ -303,6 +306,16 @@ app.get('/public/signatures/:filename', (req, res) => {
   res.sendFile(filePath);
 });
 
+// Route de test pour les signatures
+app.get('/test-signatures', (req, res) => {
+  const testFile = path.join(process.cwd(), '..', 'frontend', 'test-signature.html');
+  if (fs.existsSync(testFile)) {
+    res.sendFile(testFile);
+  } else {
+    res.status(404).send('Fichier de test non trouvé');
+  }
+});
+
 // Routes publiques de test (temporaire) - AVANT l'authentification
 app.post('/api/loyers/generer-loyers-manquants-public', async (req, res) => {
   try {
@@ -471,6 +484,7 @@ app.use('/api/fiscalite', authMiddleware, fiscaliteRoutes);
 app.use('/api/documents', authMiddleware, documentsRoutes);
 app.use('/api/scheduler', authMiddleware, schedulerRoutes);
 app.use('/api/prets', authMiddleware, pretsRoutes);
+app.use('/api/google-drive', authMiddleware, googleDriveRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {

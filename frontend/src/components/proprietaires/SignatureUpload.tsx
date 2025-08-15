@@ -123,7 +123,7 @@ const SignatureUpload: React.FC<SignatureUploadProps> = ({
             </label>
             <div className="p-4 border rounded-lg bg-gray-50">
               <img 
-                src={currentSignature} 
+                src={`/public/signatures/${currentSignature.split(/[/\\]/).pop()}`} 
                 alt="Signature actuelle"
                 className="max-h-20 border rounded"
                 style={{ maxWidth: '200px' }}

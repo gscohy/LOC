@@ -348,6 +348,7 @@ const EmailTemplatesPage: React.FC = () => {
               <div><code className="bg-white px-2 py-1 rounded text-blue-700">bien_adresse</code> - Adresse du bien</div>
               <div><code className="bg-white px-2 py-1 rounded text-blue-700">bien_ville</code> - Ville du bien</div>
               <div><code className="bg-white px-2 py-1 rounded text-blue-700">bien_code_postal</code> - Code postal</div>
+              <div><code className="bg-white px-2 py-1 rounded text-blue-700">bien_reglement</code> - Règlement intérieur</div>
             </div>
           </div>
 
@@ -356,6 +357,7 @@ const EmailTemplatesPage: React.FC = () => {
             <div className="space-y-1 text-sm">
               <div><code className="bg-white px-2 py-1 rounded text-blue-700">proprietaire_nom_complet</code> - Nom complet</div>
               <div><code className="bg-white px-2 py-1 rounded text-blue-700">proprietaire_adresse</code> - Adresse</div>
+              <div><code className="bg-white px-2 py-1 rounded text-blue-700">proprietaire_rib</code> - Numéro de RIB</div>
               <div><code className="bg-white px-2 py-1 rounded text-blue-700">signature_proprietaire</code> - Signature HTML</div>
             </div>
           </div>
@@ -369,6 +371,7 @@ const EmailTemplatesPage: React.FC = () => {
               <div><code className="bg-white px-2 py-1 rounded text-blue-700">montant_du</code> - Montant dû/restant</div>
               <div><code className="bg-white px-2 py-1 rounded text-blue-700">charges_montant</code> - Montant des charges</div>
               <div><code className="bg-white px-2 py-1 rounded text-blue-700">total_quittance</code> - Total quittance</div>
+              <div><code className="bg-white px-2 py-1 rounded text-blue-700">mode_paiement</code> - Mode de paiement</div>
             </div>
           </div>
 
@@ -378,6 +381,8 @@ const EmailTemplatesPage: React.FC = () => {
               <div><code className="bg-white px-2 py-1 rounded text-blue-700">date_paiement</code> - Date de paiement</div>
               <div><code className="bg-white px-2 py-1 rounded text-blue-700">date_etablissement</code> - Date d'établissement</div>
               <div><code className="bg-white px-2 py-1 rounded text-blue-700">date_limite</code> - Date limite</div>
+              <div><code className="bg-white px-2 py-1 rounded text-blue-700">date_etat_lieux</code> - Date état des lieux</div>
+              <div><code className="bg-white px-2 py-1 rounded text-blue-700">heure_etat_lieux</code> - Heure état des lieux</div>
               <div><code className="bg-white px-2 py-1 rounded text-blue-700">nb_jours_retard</code> - Jours de retard</div>
             </div>
           </div>

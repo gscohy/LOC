@@ -28,6 +28,7 @@ export interface Proprietaire {
   entreprise?: string;
   siret?: string;
   signature?: string;
+  numeroRIB?: string;
   createdAt: string;
   updatedAt: string;
   biens?: BienProprietaire[];
@@ -51,6 +52,7 @@ export interface Bien {
   depotGarantie: number;
   statut: 'VACANT' | 'LOUE' | 'TRAVAUX';
   description?: string;
+  reglementInterieur?: string;
   photos: string[];
   documents: string[];
   createdAt: string;
@@ -141,6 +143,11 @@ export interface Contrat {
   clausesParticulieres?: string;
   documents?: string;
   commentaires?: string;
+  // État des lieux
+  dateEtatLieux?: string;
+  heureEtatLieux?: string;
+  // Mode de paiement
+  modePaiement: 'CAF' | 'VIREMENT' | 'CHEQUE';
   createdAt: string;
   updatedAt: string;
   bien?: Bien;
@@ -368,6 +375,11 @@ export interface ContratForm {
   fraisHuissier: number;
   type: 'HABITATION' | 'COMMERCIAL' | 'MIXTE';
   clausesParticulieres?: string;
+  // État des lieux
+  dateEtatLieux?: string;
+  heureEtatLieux?: string;
+  // Mode de paiement
+  modePaiement: 'CAF' | 'VIREMENT' | 'CHEQUE';
 }
 
 export interface PaiementForm {

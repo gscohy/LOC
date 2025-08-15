@@ -60,7 +60,8 @@ const navigation: NavigationItem[] = [
   { name: 'Prêts Immobiliers', href: '/prets', icon: CreditCard },
   { name: 'Fiscalité', href: '/fiscalite', icon: FileText },
   { name: 'Configuration Email', href: '/emails', icon: Mail },
-  { name: 'Diagnostic', href: '/diagnostic', icon: Settings },
+  { name: 'Paramètres', href: '/settings', icon: Settings },
+  { name: 'Diagnostic', href: '/diagnostic', icon: Zap },
 ];
 
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {

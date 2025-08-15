@@ -1,5 +1,17 @@
 import { api } from '../lib/api';
 
+// Fonction utilitaire pour corriger les URLs de PDF selon l'environnement
+const correctPdfUrl = (url: string | undefined): string | undefined => {
+  if (!url) return url;
+  
+  // En développement local, s'assurer d'utiliser le bon port
+  if (url.includes('localhost') && url.includes(':3002')) {
+    return url.replace(':3002', ':7000');
+  }
+  
+  return url;
+};
+
 export interface QuittanceCreate {
   loyerId: string;
 }
@@ -103,6 +115,26 @@ export const quittancesService = {
   // Renvoyer une quittance par email
   async resend(id: string): Promise<void> {
     await api.post(`/quittances/${id}/resend`);
+  },
+
+  // Générer une prévisualisation de quittance sans l'envoyer
+  async preview(data: QuittanceCreate): Promise<{
+    emailContent: {
+      subject: string;
+      html: string;
+      to: string[];
+    };
+    pdfUrl?: string;
+  }> {
+    const response = await api.post('/quittances/preview', data);
+    const result = response.data.data;
+    
+    // Corriger l'URL du PDF si nécessaire
+    if (result.pdfUrl) {
+      result.pdfUrl = correctPdfUrl(result.pdfUrl);
+    }
+    
+    return result;
   },
 
   // Récupérer les statistiques des quittances

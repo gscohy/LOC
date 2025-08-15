@@ -27,6 +27,11 @@ const contratSchema = z.object({
   fraisHuissier: z.number().min(0, 'Les frais d\'huissier doivent être positifs'),
   type: z.enum(['HABITATION', 'COMMERCIAL', 'SAISONNIER', 'ETUDIANT']),
   clausesParticulieres: z.string().optional(),
+  // État des lieux
+  dateEtatLieux: z.string().optional(),
+  heureEtatLieux: z.string().optional(),
+  // Mode de paiement
+  modePaiement: z.enum(['CAF', 'VIREMENT', 'CHEQUE']),
 });
 
 type ContratFormData = z.infer<typeof contratSchema>;
@@ -72,6 +77,9 @@ const ContratForm: React.FC<ContratFormProps> = ({
       fraisHuissier: 0,
       type: 'HABITATION',
       clausesParticulieres: '',
+      dateEtatLieux: '',
+      heureEtatLieux: '',
+      modePaiement: 'VIREMENT',
       ...initialData,
     },
   });
@@ -384,6 +392,57 @@ const ContratForm: React.FC<ContratFormProps> = ({
             />
             {errors.clausesParticulieres && (
               <p className="mt-1 text-sm text-red-600">{errors.clausesParticulieres.message}</p>
+            )}
+          </div>
+
+          {/* État des lieux */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium text-gray-900">État des lieux</h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Date de l'état des lieux (optionnel)
+                </label>
+                <Input
+                  type="date"
+                  {...register('dateEtatLieux')}
+                  error={errors.dateEtatLieux?.message}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Heure de l'état des lieux (optionnel)
+                </label>
+                <Input
+                  type="time"
+                  {...register('heureEtatLieux')}
+                  error={errors.heureEtatLieux?.message}
+                  placeholder="14:30"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Mode de paiement */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Mode de paiement *
+            </label>
+            <select
+              {...register('modePaiement')}
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                errors.modePaiement ? 'border-red-300' : 'border-gray-300'
+              }`}
+            >
+              <option value="">Sélectionner le mode de paiement</option>
+              <option value="VIREMENT">Virement bancaire</option>
+              <option value="CHEQUE">Chèque</option>
+              <option value="CAF">CAF</option>
+            </select>
+            {errors.modePaiement && (
+              <p className="mt-1 text-sm text-red-600">{errors.modePaiement.message}</p>
             )}
           </div>
         </div>

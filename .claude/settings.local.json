@@ -45,8 +45,15 @@
       "WebFetch(domain:loc-backend.onrender.com)",
       "WebFetch(domain:loc-frontend.onrender.com)",
       "Bash(mkdir:*)",
-      "WebFetch(domain:loc-backend-production.up.railway.app)"
+      "WebFetch(domain:loc-backend-production.up.railway.app)",
+      "WebFetch(domain:loc-frontend-production.up.railway.app)",
+      "Bash(set PORT=7001)",
+      "Bash(powershell:*)"
     ],
-    "deny": []
+    "deny": [],
+    "defaultMode": "acceptEdits",
+    "additionalDirectories": [
+      "C:\\c\\Site\\Loc"
+    ]
   }
 }

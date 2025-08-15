@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Signature</title>
+</head>
+<body>
+    <h1>Test de signatures</h1>
+    
+    <h2>Fichiers existants dans le dossier :</h2>
+    <img src="/public/signatures/signature-1754034507033-59152871.png" alt="Test signature 1" style="max-height: 100px; border: 1px solid #ddd;" />
+    <br><br>
+    <img src="/public/signatures/signature-1754034481220-53538651.png" alt="Test signature 2" style="max-height: 100px; border: 1px solid #ddd;" />
+    
+    <h2>Fichier mentionné dans l'erreur (devrait échouer) :</h2>
+    <img src="/public/signatures/signature-1754931066582-126429764.png" alt="Test signature non existant" style="max-height: 100px; border: 1px solid red;" onerror="this.style.border='2px solid red'; this.alt='❌ Image non trouvée'" />
+    
+    <h2>Dans un template de quittance :</h2>
+    <div style="border: 1px solid #ccc; padding: 20px; background: #f9f9f9;">
+        <p><strong>Signature:</strong></p>
+        <div style="min-height: 80px; display: inline-block;">
+            <img src="/public/signatures/signature-1754034507033-59152871.png" alt="Signature" style="max-height: 80px; max-width: 200px; border: 1px solid #ddd; padding: 5px;" />
+        </div>
+    </div>
+</body>
+</html>
